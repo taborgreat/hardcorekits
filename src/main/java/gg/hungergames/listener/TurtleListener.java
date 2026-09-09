@@ -7,6 +7,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -25,6 +26,25 @@ import java.util.Set;
  * softly, so chip damage is not quietly upgraded into a full heart.
  */
 public final class TurtleListener implements Listener {
+
+    /**
+     * The shell, made visible: a full XP bar while crouched, back to the kill count the
+     * moment the crouch releases. Fill only, level untouched — same contract as every other
+     * kit's use of the bar.
+     */
+    @EventHandler
+    public void onCrouch(PlayerToggleSneakEvent event) {
+        org.bukkit.entity.Player player = event.getPlayer();
+        if (!game.state().isLive() || !kits.hasKit(player, gg.hungergames.kit.kits.TurtleKit.ID)) {
+            return;
+        }
+        if (event.isSneaking()) {
+            player.setExp(0.999F);
+        } else {
+            game.showKills(player);
+        }
+    }
+
 
     /**
      * Damage the shell does not stop.

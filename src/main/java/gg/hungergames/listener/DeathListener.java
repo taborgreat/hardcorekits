@@ -38,10 +38,17 @@ public final class DeathListener implements Listener {
 
     private final HungerGames plugin;
     private final GameManager game;
+    /** Consulted so a death mid-stomp reads "was stomped by", not as an ordinary melee kill. */
+    private final StomperListener stomper;
+    /** Consulted before eliminating: a Soulstealer's first death is deferred, not resolved. */
+    private final SoulstealerListener souls;
 
-    public DeathListener(HungerGames plugin, GameManager game) {
+    public DeathListener(HungerGames plugin, GameManager game, StomperListener stomper,
+                         SoulstealerListener souls) {
         this.plugin = plugin;
         this.game = game;
+        this.stomper = stomper;
+        this.souls = souls;
     }
 
     @EventHandler
@@ -54,6 +61,17 @@ public final class DeathListener implements Listener {
 
         // Suppress the vanilla death message; we broadcast our own formatted line.
         event.deathMessage(null);
+
+        if (killer != null && !killer.equals(victim)) {
+            game.creditKill(killer);
+        }
+
+        // The Soulstealer's door: their first death starts a hunt instead of an elimination.
+        // The kill above still counted — the death was real; only its consequences wait.
+        if (souls.beginRevival(victim)) {
+            Bukkit.broadcast(Msg.killLine(label(victim) + " died... but their soul lingers!"));
+            return;
+        }
 
         Component announcement = buildAnnouncement(victim, killer);
         // The disconnect screen repeats the line everyone else just read, so the last thing a
@@ -72,6 +90,13 @@ public final class DeathListener implements Listener {
         }
 
         String killerLabel = label(killer);
+
+        // The stomp has its own line — the kit's signature kill should read like one, and
+        // "killed with a fist" undersold being landed on from thirty blocks.
+        if (stomper.isStompDeath(victim)) {
+            return Msg.killLine(victimLabel + " was stomped by " + killerLabel);
+        }
+
         Weapon weapon = weaponOf(killer);
 
         String text = ThreadLocalRandom.current().nextBoolean()

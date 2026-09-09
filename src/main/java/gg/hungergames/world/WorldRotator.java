@@ -81,7 +81,7 @@ public final class WorldRotator {
      * Renames the world the next boot will use and blanks the seed, so the map is new terrain
      * and the current one becomes disposable.
      */
-    public static void rotate(Plugin plugin) {
+    public static void rotate(Plugin plugin, boolean noOceans) {
         Path properties = new File(PROPERTIES_FILE).toPath();
         if (!Files.isRegularFile(properties)) {
             plugin.getLogger().warning("No " + PROPERTIES_FILE
@@ -112,9 +112,16 @@ public final class WorldRotator {
             return;
         }
 
+        // The next world does not exist yet, but its datapacks folder can — and a world reads
+        // datapacks as it is created, so this is the one moment the pack can reach worldgen.
+        if (noOceans) {
+            WorldgenPack.install(plugin, Bukkit.getWorldContainer().toPath().resolve(fresh));
+        }
+
         String retiring = Bukkit.getWorlds().isEmpty() ? null : Bukkit.getWorlds().get(0).getName();
         remember(plugin, retiring);
         plugin.getLogger().info("Next boot generates '" + fresh + "'"
+                + (noOceans ? " (no-oceans worldgen)" : "")
                 + (retiring == null ? "." : " and deletes '" + retiring + "'."));
     }
 

@@ -40,8 +40,9 @@ public final class TankListener implements Listener {
         this.kits = kits;
     }
 
-    /** Blasts do nothing to a Tank, whoever set them off. */
-    @EventHandler(ignoreCancelled = true)
+    /** Blasts do nothing to a Tank, whoever set them off. LOWEST: refused before anything
+     * else — a Demoman mine, a Tank kill, a Pyro charge — gets a say in it. */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onDamage(EntityDamageEvent event) {
         if (!(event.getEntity() instanceof Player player) || !game.state().isLive()) {
             return;

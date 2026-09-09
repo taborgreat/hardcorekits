@@ -67,7 +67,7 @@ public final class CultivatorListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onPlace(BlockPlaceEvent event) {
-        if (!game.state().isLive() || !kits.hasKit(event.getPlayer(), CultivatorKit.ID)) {
+        if (!game.state().isLive() || !kits.canUseAbility(event.getPlayer(), CultivatorKit.ID)) {
             return;
         }
 

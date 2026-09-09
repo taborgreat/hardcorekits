@@ -3,9 +3,12 @@ package gg.hungergames.world;
 import gg.hungergames.HungerGames;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
+import org.bukkit.HeightMap;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkLoadEvent;
@@ -14,6 +17,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Reshapes generated terrain into the old-school playfield, one chunk at a time:
@@ -38,15 +42,18 @@ public final class WorldShaper implements Listener {
 
     private final HungerGames plugin;
     private final String worldName;
+    private final int swampMushroomsPerChunk;
     private final Set<Long> processed = new HashSet<>();
     private final Deque<Chunk> queue = new ArrayDeque<>();
 
     private int diamondsStripped;
     private int chunksShaped;
+    private int mushroomsPlanted;
 
-    public WorldShaper(HungerGames plugin, String worldName) {
+    public WorldShaper(HungerGames plugin, String worldName, int swampMushroomsPerChunk) {
         this.plugin = plugin;
         this.worldName = worldName;
+        this.swampMushroomsPerChunk = swampMushroomsPerChunk;
     }
 
     public void start() {
@@ -101,6 +108,52 @@ public final class WorldShaper implements Listener {
                 }
             }
         }
+
+        sprinkleMushrooms(chunk);
+    }
+
+    /**
+     * Extra mushrooms for swamp chunks — soup is the healing economy, so the swamps this map
+     * is centred on should actually feed it.
+     *
+     * <p>Per column, not per chunk biome: chunks straddle biome borders, and only the swampy
+     * columns should get anything. Placement obeys the block's own survival rule — mushrooms
+     * pop off in bright light at the first neighbour update — so only shaded spots (under the
+     * swamp oaks, which is where vanilla puts them too) are used, and the count per chunk is
+     * attempts, not a quota.
+     */
+    private void sprinkleMushrooms(Chunk chunk) {
+        if (swampMushroomsPerChunk <= 0) {
+            return;
+        }
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        World world = chunk.getWorld();
+        int baseX = chunk.getX() << 4;
+        int baseZ = chunk.getZ() << 4;
+
+        for (int i = 0; i < swampMushroomsPerChunk; i++) {
+            // NO_LEAVES, or the "surface" under a swamp oak is its canopy — and under the
+            // canopy is the only shade where a mushroom survives daylight in the first place.
+            Block surface = world.getHighestBlockAt(
+                    baseX + random.nextInt(16), baseZ + random.nextInt(16),
+                    HeightMap.MOTION_BLOCKING_NO_LEAVES);
+            Biome biome = surface.getBiome();
+            if (biome != Biome.SWAMP && biome != Biome.MANGROVE_SWAMP) {
+                continue;
+            }
+            Material ground = surface.getType();
+            if (ground != Material.GRASS_BLOCK && ground != Material.MUD
+                    && ground != Material.PODZOL) {
+                continue;
+            }
+            Block spot = surface.getRelative(BlockFace.UP);
+            if (!spot.getType().isAir() || spot.getLightFromSky() > 12) {
+                continue;
+            }
+            spot.setType(random.nextBoolean() ? Material.RED_MUSHROOM : Material.BROWN_MUSHROOM,
+                    false);
+            mushroomsPlanted++;
+        }
     }
 
     public int diamondsStripped() {
@@ -109,6 +162,10 @@ public final class WorldShaper implements Listener {
 
     public int chunksShaped() {
         return chunksShaped;
+    }
+
+    public int mushroomsPlanted() {
+        return mushroomsPlanted;
     }
 
     /** Chunks still waiting to be processed. */

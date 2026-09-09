@@ -67,7 +67,7 @@ public final class CookiemonsterListener implements Listener {
             return;
         }
         Player player = event.getPlayer();
-        if (!kits.hasKit(player, CookiemonsterKit.ID)) {
+        if (!kits.canUseAbility(player, CookiemonsterKit.ID)) {
             return; // grass is just grass for everyone else
         }
         if (ThreadLocalRandom.current().nextDouble() >= game.config().cookieGrassChance()) {
@@ -92,7 +92,7 @@ public final class CookiemonsterListener implements Listener {
             return;
         }
         Player player = event.getPlayer();
-        if (!kits.hasKit(player, CookiemonsterKit.ID)) {
+        if (!kits.canUseAbility(player, CookiemonsterKit.ID)) {
             return;
         }
 

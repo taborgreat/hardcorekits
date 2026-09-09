@@ -1,8 +1,10 @@
 package gg.hungergames.listener;
 
+import gg.hungergames.HungerGames;
 import gg.hungergames.game.GameManager;
 import gg.hungergames.kit.KitRegistry;
 import gg.hungergames.kit.kits.PoseidonKit;
+import gg.hungergames.util.CooldownBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
@@ -50,6 +52,10 @@ public final class PoseidonListener implements Listener {
      */
     private static final long NOTICE_COOLDOWN_MILLIS = 3000L;
 
+    /** Vanilla Strength: a flat +3 damage a level. */
+    private static final double VANILLA_STRENGTH_DAMAGE = 3.0D;
+
+    private final HungerGames plugin;
     private final GameManager game;
     private final KitRegistry kits;
 
@@ -60,7 +66,8 @@ public final class PoseidonListener implements Listener {
     /** When each Poseidon was last told about the shoreline. */
     private final Map<UUID, Long> lastNotice = new HashMap<>();
 
-    public PoseidonListener(GameManager game, KitRegistry kits) {
+    public PoseidonListener(HungerGames plugin, GameManager game, KitRegistry kits) {
+        this.plugin = plugin;
         this.game = game;
         this.kits = kits;
     }
@@ -86,11 +93,28 @@ public final class PoseidonListener implements Listener {
         }
         if (!(event.getDamager() instanceof Player attacker)
                 || !game.state().isLive()
-                || !kits.hasKit(attacker, PoseidonKit.ID)
+                || !kits.canUseAbility(attacker, PoseidonKit.ID)
                 || !attacker.isInWater()) {
             return;
         }
-        event.setDamage(event.getDamage() * game.config().poseidonWaterDamageMultiplier());
+        // The Strength worn in water is a badge, not the mechanic, so its flat bonus comes back
+        // off before the multiplier goes on. Without this the two would compound and a Poseidon
+        // would hit far harder than the configured number says.
+        double base = Math.max(0.0D, event.getDamage() - strengthBadgeBonus(attacker));
+        event.setDamage(base * game.config().poseidonWaterDamageMultiplier());
+    }
+
+    /**
+     * The damage the visible Strength effect is adding, which is vanilla's flat +3 a level.
+     *
+     * <p>Only ever the level this kit grants. A Poseidon who drank a stronger potion keeps the
+     * difference, which is theirs to keep.
+     */
+    private double strengthBadgeBonus(Player attacker) {
+        if (!attacker.hasPotionEffect(PotionEffectType.STRENGTH)) {
+            return 0.0D;
+        }
+        return VANILLA_STRENGTH_DAMAGE * game.config().poseidonWaterStrengthLevel();
     }
 
     // ---------------------------------------------------------------- lungs and legs
@@ -127,6 +151,8 @@ public final class PoseidonListener implements Listener {
 
     /** Leaving the water: slowed for a few seconds, and told why. */
     private void beach(Player player) {
+        dropBadge(player);
+
         int seconds = game.config().poseidonLandSlownessSeconds();
         int level = game.config().poseidonLandSlownessLevel();
         if (seconds <= 0 || level <= 0) {
@@ -136,6 +162,8 @@ public final class PoseidonListener implements Listener {
         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS,
                 seconds * 20, Math.max(0, level - 1), true, false));
         beached.add(player.getUniqueId());
+        // The penalty, draining on the XP bar. The fill only — the level stays kills.
+        CooldownBar.show(plugin, game, player, seconds);
         notice(player, "You leave the water, slowed for " + seconds + "s.");
     }
 
@@ -143,8 +171,38 @@ public final class PoseidonListener implements Listener {
     private void wade(Player player) {
         if (beached.remove(player.getUniqueId())) {
             player.removePotionEffect(PotionEffectType.SLOWNESS);
+            CooldownBar.clear(game, player);
         }
+        wearBadge(player);
         notice(player, "The water is yours.");
+    }
+
+    /**
+     * Strength, worn while standing in water.
+     *
+     * <p>The kit's real bite is the damage multiplier, which is invisible: nothing on screen
+     * says whether it is live, and "am I in the water enough" is exactly the question a
+     * Poseidon needs answered mid-fight. So the buff wears a Strength icon while it applies and
+     * loses it the moment it stops, and {@link #strengthBadgeBonus(Player)} takes the effect's
+     * own damage back out so the badge changes nothing but the display.
+     *
+     * <p>Ambient with no particles: an icon in the corner, not a cloud that gives the position
+     * of someone hiding in a river away.
+     */
+    private void wearBadge(Player player) {
+        int level = game.config().poseidonWaterStrengthLevel();
+        if (level <= 0) {
+            return;
+        }
+        player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH,
+                PotionEffect.INFINITE_DURATION, level - 1, true, false, true));
+    }
+
+    /** Dry land, dry badge. */
+    private void dropBadge(Player player) {
+        if (game.config().poseidonWaterStrengthLevel() > 0) {
+            player.removePotionEffect(PotionEffectType.STRENGTH);
+        }
     }
 
     /** Shoreline chatter, rate-limited so paddling at the edge cannot flood anyone's chat. */

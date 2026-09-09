@@ -100,7 +100,7 @@ public final class SpyListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onCompass(PlayerInteractEvent event) {
         Player spy = event.getPlayer();
-        if (!CompassListener.isCompassClick(event, game) || !kits.hasKit(spy, SpyKit.ID)) {
+        if (!CompassListener.isCompassClick(event, game) || !kits.canUseAbility(spy, SpyKit.ID)) {
             return;
         }
         Player target = CompassListener.nearestOpponent(game, spy);
@@ -111,13 +111,12 @@ public final class SpyListener implements Listener {
         // Lock on. From here the sweep keeps the needle on them as they move.
         pinned.put(spy.getUniqueId(), target.getUniqueId());
 
+        // One line, once. Everything after this is the needle and the action bar — a Spy's
+        // chat stays clean enough to read the actual fight in.
         Location at = target.getLocation();
         spy.sendMessage(Component.text(label(target) + " is at "
                 + at.getBlockX() + ", " + at.getBlockY() + ", " + at.getBlockZ()
-                + ". " + blocks(at.distance(spy.getLocation())) + " away.",
-                NamedTextColor.YELLOW));
-        spy.sendMessage(Component.text("Your compass is now tracking them.",
-                NamedTextColor.YELLOW));
+                + " — compass locked on.", NamedTextColor.YELLOW));
     }
 
     /**
@@ -136,7 +135,7 @@ public final class SpyListener implements Listener {
         if (target == null || !target.isOnline() || !game.isAlive(target)
                 || !target.getWorld().equals(spy.getWorld())) {
             pinned.remove(spy.getUniqueId());
-            spy.sendMessage(Component.text("You have lost the trail.", NamedTextColor.YELLOW));
+            spy.sendActionBar(Component.text("You have lost the trail.", NamedTextColor.YELLOW));
             return;
         }
 
@@ -150,7 +149,7 @@ public final class SpyListener implements Listener {
             return;
         }
         for (Player spy : game.alivePlayers()) {
-            if (!kits.hasKit(spy, SpyKit.ID)) {
+            if (!kits.canUseAbility(spy, SpyKit.ID)) {
                 continue;
             }
             followPinnedTarget(spy);
@@ -180,7 +179,7 @@ public final class SpyListener implements Listener {
                 continue; // out of range, or already announced and not yet gone
             }
 
-            spy.sendMessage(Component.text(label(other) + " is nearby, "
+            spy.sendActionBar(Component.text(label(other) + " is nearby, "
                     + blocks(distance) + " to the " + bearing(here, other.getLocation()) + ".",
                     NamedTextColor.GOLD));
             spy.playSound(here, Sound.BLOCK_NOTE_BLOCK_PLING, 0.6F, 1.6F);

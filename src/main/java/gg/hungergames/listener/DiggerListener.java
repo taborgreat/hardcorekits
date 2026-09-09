@@ -57,7 +57,7 @@ public final class DiggerListener implements Listener {
         if (placed.getType() != DiggerKit.EGG || !game.state().isLive()) {
             return;
         }
-        if (!kits.hasKit(event.getPlayer(), DiggerKit.ID)) {
+        if (!kits.canUseAbility(event.getPlayer(), DiggerKit.ID)) {
             return; // an ordinary dragon egg for anyone else
         }
 

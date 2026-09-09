@@ -99,7 +99,9 @@ public final class LauncherListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onMove(PlayerMoveEvent event) {
-        if (!game.state().isLive()) {
+        // Pads lie dormant through the grace period along with every other kit ability, so the
+        // opening minutes cannot be spent flinging people off the map.
+        if (!game.state().isPvpEnabled()) {
             return;
         }
         Player player = event.getPlayer();
@@ -118,11 +120,29 @@ public final class LauncherListener implements Listener {
         launch(player, under);
     }
 
+    /**
+     * Hard ceiling on launch speed, whatever the stack or the fall behind it. ~3.0 blocks a
+     * tick peaks around 60 blocks up — the height a full five-high pad is meant to reach, and
+     * the most anything should.
+     */
+    private static final double MAX_BOUNCE = 3.0D;
+
     private void launch(Player player, Block pad) {
         GameConfig config = game.config();
 
-        Vector throwing = lean(pad).multiply(config.launcherSidewaysPower());
-        throwing.setY(config.launcherPower() * stackUnder(pad));
+        // A trampoline, not a spring-loaded floor: the stack sets the guaranteed hop, and
+        // falling speed is returned with interest on top of it — so a drop onto a pad bounces
+        // higher than a step, and a pad placed below a fall turns the fall into height.
+        Vector current = player.getVelocity();
+        double stackKick = config.launcherPower() * stackUnder(pad);
+        double returned = -current.getY() * config.launcherRestitution();
+        double up = Math.min(MAX_BOUNCE, Math.max(stackKick, returned));
+
+        // Horizontal momentum is the player's own and survives the bounce — running across a
+        // pad carries your run. The lean only adds on top, and only if it is configured on.
+        Vector throwing = new Vector(current.getX(), 0.0D, current.getZ())
+                .add(lean(pad).multiply(config.launcherSidewaysPower()));
+        throwing.setY(up);
         player.setVelocity(throwing);
         player.setFallDistance(0.0F);
 

@@ -52,7 +52,7 @@ public final class EndermageListener implements Listener {
             return;
         }
         Player caster = event.getPlayer();
-        if (!kits.hasKit(caster, EndermageKit.ID)) {
+        if (!kits.canUseAbility(caster, EndermageKit.ID)) {
             return; // an ordinary block for anyone else
         }
 
@@ -91,6 +91,9 @@ public final class EndermageListener implements Listener {
             if (!target.equals(caster)) {
                 dragged.add(target);
             }
+            // Heard at both ends: the spot they vanished from, and the portal they land on.
+            target.getWorld().playSound(target.getLocation(),
+                    Sound.ENTITY_ENDERMAN_TELEPORT, 1.0F, 0.8F);
             target.teleport(portal);
             game.grantImmunity(target, immunity);
             target.getWorld().playSound(portal, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0F, 1.0F);

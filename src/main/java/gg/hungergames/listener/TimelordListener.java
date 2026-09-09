@@ -6,10 +6,12 @@ import gg.hungergames.game.GameManager;
 import gg.hungergames.kit.KitRegistry;
 import gg.hungergames.kit.kits.TimelordKit;
 import gg.hungergames.util.Interact;
+import gg.hungergames.util.CooldownBar;
 import gg.hungergames.util.Phases;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -81,7 +83,7 @@ public final class TimelordListener implements Listener {
             return;
         }
         Player caster = event.getPlayer();
-        if (!game.state().isLive() || !kits.hasKit(caster, TimelordKit.ID)) {
+        if (!game.state().isLive() || !kits.canUseAbility(caster, TimelordKit.ID)) {
             return; // anyone else is just checking the time
         }
         if (action == Action.RIGHT_CLICK_BLOCK && Interact.opensBlock(event)) {
@@ -117,8 +119,11 @@ public final class TimelordListener implements Listener {
             }
         }
 
-        // The spell's own duration is dead time too, so the watch is spent for both.
-        caster.setCooldown(TimelordKit.WATCH, (duration + config.timelordCooldownSeconds()) * 20);
+        // The spell's own duration is dead time too, so the watch is spent for both — on the
+        // item's sweep and on the XP bar alike.
+        int totalCooldown = duration + config.timelordCooldownSeconds();
+        caster.setCooldown(TimelordKit.WATCH, totalCooldown * 20);
+        CooldownBar.show(plugin, game, caster, totalCooldown);
         caster.getWorld().playSound(origin, Sound.BLOCK_BEACON_ACTIVATE, 1.0F, 2.0F);
         caster.sendMessage(Component.text(caught == 0
                         ? "Time freezes. Nobody was close enough to catch."
@@ -132,6 +137,24 @@ public final class TimelordListener implements Listener {
         UUID uuid = player.getUniqueId();
         Phases.cancel(frozen.remove(uuid));
         frozen.put(uuid, Phases.delayed(plugin, seconds, () -> thaw(uuid)));
+
+        // Being frozen should look frozen: a chime, a burst of ice on arrival, and a slow
+        // snowfall around the victim for the whole hold. The shimmer task ends itself the
+        // moment the freeze does, however it ends.
+        player.playSound(player.getLocation(), Sound.BLOCK_GLASS_PLACE, 1.0F, 0.6F);
+        player.getWorld().spawnParticle(Particle.SNOWFLAKE,
+                player.getLocation().add(0.0D, 1.0D, 0.0D), 40, 0.4D, 0.9D, 0.4D, 0.02D);
+        org.bukkit.Bukkit.getScheduler().runTaskTimer(plugin, task -> {
+            if (!frozen.containsKey(uuid) || !player.isOnline()) {
+                player.getWorld().spawnParticle(Particle.CLOUD,
+                        player.getLocation().add(0.0D, 1.0D, 0.0D), 12, 0.3D, 0.6D, 0.3D, 0.01D);
+                player.playSound(player.getLocation(), Sound.BLOCK_GLASS_BREAK, 0.8F, 1.4F);
+                task.cancel();
+                return;
+            }
+            player.getWorld().spawnParticle(Particle.SNOWFLAKE,
+                    player.getLocation().add(0.0D, 1.2D, 0.0D), 6, 0.35D, 0.8D, 0.35D, 0.0D);
+        }, 10L, 10L);
     }
 
     private void thaw(UUID uuid) {

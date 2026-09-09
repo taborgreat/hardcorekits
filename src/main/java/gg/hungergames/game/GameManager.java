@@ -3,6 +3,7 @@ package gg.hungergames.game;
 import gg.hungergames.HungerGames;
 import gg.hungergames.kit.Kit;
 import gg.hungergames.kit.KitRegistry;
+import gg.hungergames.stats.StatsStore;
 import gg.hungergames.util.Msg;
 import gg.hungergames.util.Phases;
 import net.kyori.adventure.text.Component;
@@ -68,6 +69,8 @@ public final class GameManager {
     private final Map<UUID, String> fakes = new HashMap<>();
     /** Disconnects per player this game, counted only once PvP is live. */
     private final Map<UUID, Integer> disconnects = new HashMap<>();
+    /** Kills per player this match. This is what the XP bar shows. */
+    private final Map<UUID, Integer> matchKills = new HashMap<>();
     /** Short-lived per-player damage immunity, e.g. after an Endermage portal drag. */
     private final Map<UUID, Long> immuneUntil = new HashMap<>();
     /**
@@ -78,14 +81,21 @@ public final class GameManager {
 
     private int fakeCounter;
 
+    /** Lifetime stats, written at match start, on kills and on wins. */
+    private final StatsStore stats;
+    /** When the current match dropped, or 0 outside one. Volatile: the web thread reads it. */
+    private volatile long matchStartMillis;
+
     private BukkitTask lobbyTask;
     private BukkitTask countdownTask;
     private BukkitTask invulnerableTask;
 
-    public GameManager(HungerGames plugin, KitRegistry kits, GameConfig config) {
+    public GameManager(HungerGames plugin, KitRegistry kits, GameConfig config,
+                       StatsStore stats) {
         this.plugin = plugin;
         this.kits = kits;
         this.config = config;
+        this.stats = stats;
         this.feast = new FeastManager(plugin, this, config);
         this.endgame = new EndgameManager(plugin, this, config);
         this.combat = new CombatTracker(config.combatLogSeconds());
@@ -143,6 +153,16 @@ public final class GameManager {
     }
 
     /** Registers per-match cleanup, run every time the game returns to WAITING. */
+    public StatsStore stats() {
+        return stats;
+    }
+
+    /** Seconds since the drop, or 0 outside a match. Safe to call from any thread. */
+    public long matchElapsedSeconds() {
+        long start = matchStartMillis;
+        return start == 0L ? 0L : (System.currentTimeMillis() - start) / 1000L;
+    }
+
     public void onReset(Runnable hook) {
         resetHooks.add(hook);
     }
@@ -346,6 +366,7 @@ public final class GameManager {
 
         String killer = combat.lastAttackerName(uuid);
         combat.forget(uuid);
+        creditKill(killer);
 
         announceElimination(killer == null
                 ? Msg.forfeitLine(name + " abandoned the End Game, and has forfeit!")
@@ -362,6 +383,7 @@ public final class GameManager {
 
         String killer = combat.lastAttackerName(uuid);
         combat.forget(uuid);
+        creditKill(killer);
 
         announceElimination(Msg.killLine(killer == null
                 ? name + " logged out while in combat and died."
@@ -408,6 +430,7 @@ public final class GameManager {
         ceremony.clear();
         combat.clear();
         disconnects.clear();
+        matchKills.clear();
         immuneUntil.clear();
         clearFakes();
         // A broken kit hook must not stop the game returning to WAITING either.
@@ -454,8 +477,46 @@ public final class GameManager {
 
     /** Runs every 2s during WAITING, watching for the player threshold. */
     private void tickLobby() {
+        refreshMotd();
+        showKitChoice();
         if (state == GameState.WAITING && participantCount() >= config.minPlayers()) {
             startCountdown();
+        }
+    }
+
+    /**
+     * Second MOTD line, from the state: joinable reads as an invitation, anything else as a
+     * closed door. Refreshed on the lobby tick rather than at each transition — idempotent,
+     * cheap, and impossible for a new transition to forget.
+     */
+    private void refreshMotd() {
+        Component second = state.isPreGame()
+                ? Component.text("The games will begin shortly", NamedTextColor.GREEN)
+                : Component.text("Game in progress", NamedTextColor.RED);
+        Bukkit.getServer().motd(Component.text(config.motd())
+                .append(Component.newline())
+                .append(second));
+    }
+
+    /**
+     * Keeps everyone's kit choice on the action bar while they wait.
+     *
+     * <p>Refreshed on the lobby tick because the action bar fades after a few seconds, and it
+     * has to still be true after someone runs /kit. It stops at the drop: once the match starts
+     * the bar belongs to whatever a kit wants to say with it.
+     */
+    private void showKitChoice() {
+        if (!state.isPreGame()) {
+            return;
+        }
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            Kit kit = kits.selectedFor(player.getUniqueId());
+            player.sendActionBar(kit == null
+                    ? Component.text("No kit. Type ", NamedTextColor.GRAY)
+                            .append(Component.text("/kits", NamedTextColor.AQUA))
+                            .append(Component.text(" to choose.", NamedTextColor.GRAY))
+                    : Component.text("Kit: ", NamedTextColor.GRAY)
+                            .append(Component.text(kit.displayName(), NamedTextColor.AQUA)));
         }
     }
 
@@ -469,24 +530,63 @@ public final class GameManager {
         return lobbyTask != null && !lobbyTask.isCancelled();
     }
 
+    /** Seconds left on the running countdown. Mutable, because the lobby can change it. */
+    private int countdownRemaining;
+
     public void startCountdown() {
         if (state != GameState.WAITING) {
             return;
         }
 
+        // A quiet lobby gets the long fuse so stragglers can gather; a busy one starts fast.
+        countdownRemaining = participantCount() >= config.busyPlayers()
+                ? config.busyCountdownSeconds()
+                : config.countdownSeconds();
+
         // Schedule first, promote the state second. If scheduling throws, the game stays in
         // WAITING and keeps working rather than stranding in a COUNTDOWN that never ticks.
         // The lobby watcher is deliberately left running; it gates on the state.
-        BukkitTask scheduled = Phases.countdown(plugin, config.countdownSeconds(),
-                remaining -> {
-                    if (Phases.isMilestone(remaining)) {
-                        Msg.timer("Tournament will start in " + Msg.duration(remaining) + ".");
-                    }
-                },
-                this::beginMatch);
+        BukkitTask scheduled = Bukkit.getScheduler().runTaskTimer(plugin,
+                this::tickCountdown, 0L, 20L);
 
         countdownTask = scheduled;
         state = GameState.COUNTDOWN;
+    }
+
+    /**
+     * One second of countdown, with both ears on the lobby.
+     *
+     * <p>Dropping under min-players cancels the start outright — with a two-player floor,
+     * your opponent leaving means there is nobody to fight, and a match that begins anyway
+     * begins solved. And filling past busy-players cuts the fuse to the short one: the long
+     * wait exists for empty evenings, not for a full lobby staring at a five-minute clock.
+     */
+    private void tickCountdown() {
+        int count = participantCount();
+        if (count < config.minPlayers()) {
+            Phases.cancel(countdownTask);
+            countdownTask = null;
+            Msg.notice("Not enough players left. Countdown cancelled.");
+            enterWaiting();
+            return;
+        }
+        if (count >= config.busyPlayers()
+                && countdownRemaining > config.busyCountdownSeconds()) {
+            countdownRemaining = config.busyCountdownSeconds();
+            Msg.timer("The lobby is filling — start moved up to "
+                    + Msg.duration(countdownRemaining) + "!");
+        }
+
+        if (countdownRemaining <= 0) {
+            Phases.cancel(countdownTask);
+            countdownTask = null;
+            beginMatch();
+            return;
+        }
+        if (Phases.isMilestone(countdownRemaining)) {
+            Msg.timer("Tournament will start in " + Msg.duration(countdownRemaining) + ".");
+        }
+        countdownRemaining--;
     }
 
     /**
@@ -524,9 +624,12 @@ public final class GameManager {
             player.teleport(dropPointFor(player));
             giveStartingItems(player);
             alive.add(player.getUniqueId());
+            stats.recordGameStart(player, kitIdOf(player.getUniqueId()));
         }
         alive.addAll(fakes.keySet());
 
+        stats.recordMatchStart();
+        matchStartMillis = System.currentTimeMillis();
         state = GameState.INVULNERABLE;
 
         Msg.timer("The Tournament has begun!");
@@ -538,6 +641,39 @@ public final class GameManager {
         Phases.delayed(plugin, 1L, this::startInvulnerabilityCountdown);
         feast.schedule();
         endgame.schedule();
+    }
+
+    /**
+     * Admin shortcut: straight to the drop, no countdown.
+     *
+     * <p>From WAITING it simply begins; from a running COUNTDOWN it collapses the clock. The
+     * lobby checks that the countdown enforces still apply — beginMatch has its own floor.
+     *
+     * @return false if a match is already underway
+     */
+    public boolean quickStart() {
+        if (state != GameState.WAITING && state != GameState.COUNTDOWN) {
+            return false;
+        }
+        Phases.cancel(countdownTask);
+        countdownTask = null;
+        beginMatch();
+        return true;
+    }
+
+    /**
+     * Admin shortcut: invincibility ends now.
+     *
+     * @return false unless the grace period is what is currently running
+     */
+    public boolean skipInvulnerability() {
+        if (state != GameState.INVULNERABLE) {
+            return false;
+        }
+        Phases.cancel(invulnerableTask);
+        invulnerableTask = null;
+        enableCombat();
+        return true;
     }
 
     private void startInvulnerabilityCountdown() {
@@ -678,19 +814,87 @@ public final class GameManager {
         }
 
         UUID uuid = alive.iterator().next();
+        // Fakes can "win" a test match; their victories are nobody's lifetime record.
+        if (!fakes.containsKey(uuid)) {
+            stats.recordWin(uuid, nameOf(uuid), kitIdOf(uuid));
+        }
         Player winner = Bukkit.getPlayer(uuid);
         if (winner == null) {
             Msg.win(nameOf(uuid) + " wins!");
             Phases.delayed(plugin, 10L, this::reset);
             return;
         }
+
+        // A win settled inside the End Game box needs a step first: the podium builds a fixed
+        // height above the winner, and above the winner must mean clear sky — not the inside
+        // of a bedrock kiln full of lava. So the winner is lifted just over the box, and the
+        // cake goes up from there.
+        Location box = endgame.box();
+        if (endgame.hasBegun() && box != null) {
+            Location sky = box.clone().add(0.0D, config.endgameWallHeight() + 3.0D, 0.0D);
+            winner.setFallDistance(0.0F);
+            winner.teleport(sky);
+        }
         ceremony.celebrate(winner, this::reset);
+    }
+
+    /**
+     * A kill credited by name rather than by object — the combat-log paths only know the
+     * attacker's name. They are almost always still online to be looked up; one who is not
+     * loses the stat, which is the cheapest honest answer.
+     */
+    private void creditKill(String killerName) {
+        if (killerName == null) {
+            return;
+        }
+        creditKill(Bukkit.getPlayerExact(killerName));
+    }
+
+    /**
+     * Records a kill: the lifetime ledger, this match's tally, and the killer's XP bar.
+     *
+     * <p>Every path that awards a kill comes through here, so the number on the bar cannot
+     * drift from the number in the stats.
+     */
+    public void creditKill(Player killer) {
+        if (killer == null) {
+            return;
+        }
+        stats.recordKill(killer, kitIdOf(killer.getUniqueId()));
+        matchKills.merge(killer.getUniqueId(), 1, Integer::sum);
+        showKills(killer);
+    }
+
+    /** Kills this player has this match. */
+    public int killsThisMatch(Player player) {
+        return matchKills.getOrDefault(player.getUniqueId(), 0);
+    }
+
+    /**
+     * Paints the kill count onto the XP bar.
+     *
+     * <p>The level number is the scoreboard here: no kit reads levels, ambient XP is thrown
+     * away before it can move the bar, and the bar is repainted whenever anything touches it.
+     */
+    public void showKills(Player player) {
+        player.setLevel(killsThisMatch(player));
+        player.setExp(0.0F);
+    }
+
+    /**
+     * The kit this player holds right now, for the stats ledger. Read at the moment of the
+     * event rather than at match start, so it is always the kit actually being played.
+     */
+    public String kitIdOf(UUID uuid) {
+        Kit kit = kits.selectedFor(uuid);
+        return kit == null ? "none" : kit.id();
     }
 
     // ---------------------------------------------------------------- reset
 
     public void reset() {
         state = GameState.RESETTING;
+        matchStartMillis = 0L;
         Phases.cancel(countdownTask);
         Phases.cancel(invulnerableTask);
         feast.cancel();

@@ -5,6 +5,8 @@ import gg.hungergames.command.KitCommand;
 import gg.hungergames.game.GameConfig;
 import gg.hungergames.game.GameManager;
 import gg.hungergames.kit.KitRegistry;
+import gg.hungergames.stats.StatsStore;
+import gg.hungergames.web.StatusServer;
 import gg.hungergames.listener.AdvancementListener;
 import gg.hungergames.listener.AnchorListener;
 import gg.hungergames.listener.BarbarianListener;
@@ -13,11 +15,11 @@ import gg.hungergames.listener.BerserkerListener;
 import gg.hungergames.listener.CannibalListener;
 import gg.hungergames.listener.CombatListener;
 import gg.hungergames.listener.CompassListener;
-import gg.hungergames.listener.CopycatListener;
 import gg.hungergames.listener.CultivatorListener;
 import gg.hungergames.listener.ConnectionListener;
 import gg.hungergames.listener.DeathListener;
 import gg.hungergames.listener.DemomanListener;
+import gg.hungergames.listener.EnchantingListener;
 import gg.hungergames.listener.FiremanListener;
 import gg.hungergames.listener.HulkListener;
 import gg.hungergames.listener.JackhammerListener;
@@ -25,6 +27,8 @@ import gg.hungergames.listener.CookiemonsterListener;
 import gg.hungergames.listener.JellyfishListener;
 import gg.hungergames.listener.LauncherListener;
 import gg.hungergames.listener.KangarooListener;
+import gg.hungergames.listener.KillCounterListener;
+import gg.hungergames.listener.NinjaListener;
 import gg.hungergames.listener.LegacyCombatListener;
 import gg.hungergames.listener.TimelordListener;
 import gg.hungergames.listener.DiggerListener;
@@ -34,16 +38,35 @@ import gg.hungergames.listener.KayaListener;
 import gg.hungergames.listener.PoseidonListener;
 import gg.hungergames.listener.ProtectionListener;
 import gg.hungergames.listener.PyroListener;
+import gg.hungergames.listener.FlashListener;
+import gg.hungergames.listener.HadesListener;
+import gg.hungergames.listener.MonkListener;
+import gg.hungergames.listener.ScorchListener;
+import gg.hungergames.listener.ForgerListener;
+import gg.hungergames.listener.GamblerListener;
+import gg.hungergames.listener.GladiatorListener;
+import gg.hungergames.listener.GrapplerListener;
+import gg.hungergames.listener.ReaperListener;
+import gg.hungergames.listener.SnailListener;
+import gg.hungergames.listener.SoulstealerListener;
+import gg.hungergames.listener.SpidermanListener;
+import gg.hungergames.listener.VampireListener;
+import gg.hungergames.listener.ViperListener;
 import gg.hungergames.listener.SoupListener;
+import gg.hungergames.listener.SwitcherListener;
+import gg.hungergames.listener.WerewolfListener;
+import gg.hungergames.listener.WispListener;
 import gg.hungergames.listener.SpyListener;
 import gg.hungergames.listener.StomperListener;
 import gg.hungergames.listener.TankListener;
 import gg.hungergames.listener.TurtleListener;
 import gg.hungergames.listener.ThorListener;
+import gg.hungergames.util.CooldownBar;
 import gg.hungergames.world.BorderTask;
 import gg.hungergames.world.WorldRotator;
 import gg.hungergames.world.WorldShaper;
 import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.command.TabCompleter;
@@ -55,10 +78,16 @@ public final class HungerGames extends JavaPlugin {
     private GameManager game;
     private KitRegistry kits;
     private WorldShaper worldShaper;
+    private StatusServer statusServer;
 
     @Override
     public void onEnable() {
-        saveDefaultConfig();
+        // One config, one truth. The copy in the data folder is a mirror of the one in the
+        // jar, rewritten on every boot — edit src/main/resources/config.yml and rebuild.
+        // The old two-config split is how the feast spent days secretly 10 blocks wide: the
+        // shipped file said one thing while the server quietly read another.
+        saveResource("config.yml", true);
+        reloadConfig();
 
         // If the last boot retired a map, its folder is still on disk and is not the world we
         // just booted into — so now is the one safe moment to delete it.
@@ -67,18 +96,19 @@ public final class HungerGames extends JavaPlugin {
         // Config first: kits with tuning values of their own are handed it as they register.
         GameConfig config = new GameConfig(getConfig());
 
-        // Retire this map now, at boot, rather than on the way out. The next start gets fresh
-        // terrain however this run ends — a finished match, /stop, Ctrl+C, or a crash — because
-        // the decision is already written to disk instead of depending on a clean shutdown.
-        if (config.freshWorldOnRestart()) {
-            WorldRotator.rotate(this);
-        }
-
         kits = new KitRegistry();
         kits.registerDefaults(config);
 
-        game = new GameManager(this, kits, config);
-        worldShaper = new WorldShaper(this, config.world().getName());
+        // Stats live in the data folder, so they survive the world rotation by design.
+        StatsStore stats = new StatsStore(getDataFolder(), getLogger());
+
+        game = new GameManager(this, kits, config, stats);
+
+        // Kit abilities stay locked until invincibility wears off. One gate, so every kit,
+        // including any written later, is covered without touching its listener.
+        kits.setAbilityGate(() -> game.state().isPvpEnabled());
+        worldShaper = new WorldShaper(this, config.world().getName(),
+                config.swampMushroomsPerChunk());
 
         // server.properties is rewritten on shutdown by the world rotator and the run/ copy is
         // untracked, so the listing details live in the plugin config and are stamped on at boot.
@@ -94,17 +124,38 @@ public final class HungerGames extends JavaPlugin {
         game.enable();
         worldShaper.start();
         new BorderTask(this, game).start();
+        if (config.webEnabled()) {
+            statusServer = new StatusServer(this, game);
+            statusServer.start(config.webBind(), config.webPort());
+        }
         getLogger().info("Hunger Games enabled — state: " + game.state());
     }
 
     @Override
     public void onDisable() {
+        if (statusServer != null) {
+            statusServer.stop();
+            statusServer = null;
+        }
         SoupListener.unregisterRecipe(this);
         KayaListener.unregisterRecipe(this);
         if (game == null) {
             return;
         }
         game.disable();
+
+        // Retiring the map has to happen here, on the way out, and not at boot: Paper reloads
+        // server.properties when it starts and writes it back out as it stops, so a level-name
+        // written mid-run is simply overwritten and the next boot comes up on the same map.
+        // Measured, not assumed — rotating at enable produced two identical maps in a row.
+        //
+        // The cost is that a crash never gets here. That case belongs to the launcher, which
+        // can see a world folder that was never retired and drop it while nothing is holding
+        // it; tools/run-loop.sh does exactly that. isStopping keeps /reload from rotating a
+        // server that is not going anywhere.
+        if (game.config().freshWorldOnRestart() && Bukkit.isStopping()) {
+            WorldRotator.rotate(this, game.config().worldgenNoOceans());
+        }
     }
 
     public GameManager game() {
@@ -126,6 +177,8 @@ public final class HungerGames extends JavaPlugin {
         bind("hgreset", admin, null);
         bind("hgstate", admin, null);
         bind("hgfake", admin, null);
+        bind("hgquickstart", admin, null);
+        bind("hgskipinvuln", admin, null);
 
         KitCommand kitCommand = new KitCommand(game, kits);
         bind("kit", kitCommand, kitCommand);
@@ -149,6 +202,9 @@ public final class HungerGames extends JavaPlugin {
         // Mines are per-match state, so drop them whenever the game resets.
         game.onReset(demoman::clearTraps);
 
+        // Any kit timer still on an XP bar dies with the match it belonged to.
+        game.onReset(CooldownBar::clearAll);
+
         DiggerListener digger = new DiggerListener(this, game, kits);
         // A burning fuse is per-match state too — never let one fire into the next game.
         game.onReset(digger::clearFuses);
@@ -163,7 +219,7 @@ public final class HungerGames extends JavaPlugin {
         FishermanListener fisherman = new FishermanListener(this, game, kits);
         game.onReset(fisherman::clearCooldowns);
 
-        PoseidonListener poseidon = new PoseidonListener(game, kits);
+        PoseidonListener poseidon = new PoseidonListener(this, game, kits);
         game.onReset(poseidon::clearState);
 
         // The Spy watches on a sweep rather than on movement, so it needs starting like the
@@ -172,10 +228,8 @@ public final class HungerGames extends JavaPlugin {
         game.onReset(spy::clearState);
         spy.start();
 
-        CopycatListener copycat = new CopycatListener(this, game, kits);
-        game.onReset(copycat::clearCopycats);
 
-        ThorListener thor = new ThorListener(game, kits);
+        ThorListener thor = new ThorListener(this, game, kits);
         game.onReset(thor::clearCooldowns);
 
         KayaListener kaya = new KayaListener(this, game, kits);
@@ -187,11 +241,36 @@ public final class HungerGames extends JavaPlugin {
         HulkListener hulk = new HulkListener(this, game, kits);
         game.onReset(hulk::clearGrips);
 
-        KangarooListener kangaroo = new KangarooListener(game, kits);
+        SwitcherListener switcher = new SwitcherListener(this, game, kits);
+        game.onReset(switcher::clearCooldowns);
+
+        MonkListener monk = new MonkListener(this, game, kits);
+        game.onReset(monk::clearCooldowns);
+
+        FlashListener flash = new FlashListener(this, game, kits);
+        game.onReset(flash::clearCooldowns);
+
+        // Armies follow on a sweep, like the Spy's radar; they disband with the match.
+        HadesListener hades = new HadesListener(this, game, kits);
+        game.onReset(hades::clearMinions);
+        hades.start();
+
+        WispListener wisp = new WispListener(this, game, kits);
+        // Decoys are per-match creatures; none may wander into the next game.
+        game.onReset(wisp::clearClones);
+
+        // The Werewolf watches the clock on a sweep, like the Spy watches distances.
+        WerewolfListener werewolf = new WerewolfListener(this, game, kits);
+        werewolf.start();
+
+        KangarooListener kangaroo = new KangarooListener(this, game, kits);
         game.onReset(kangaroo::clearLandings);
 
         JellyfishListener jellyfish = new JellyfishListener(this, game, kits);
         game.onReset(jellyfish::drainAll);
+
+        NinjaListener ninja = new NinjaListener(game, kits);
+        game.onReset(ninja::clearMarks);
 
         LauncherListener launcher = new LauncherListener(game, kits);
         // Pads are per-match state, like the Demoman's mines.
@@ -203,15 +282,41 @@ public final class HungerGames extends JavaPlugin {
         LegacyCombatListener legacyCombat = new LegacyCombatListener(this, game);
         game.onReset(legacyCombat::clearHealTimers);
 
+        // Created ahead of the loop because DeathListener consults it for the stomp kill line.
+        StomperListener stomperListener = new StomperListener(game, kits);
+
+        // Ahead of the loop for the same reason: DeathListener asks it before eliminating.
+        SoulstealerListener souls = new SoulstealerListener(this, game, kits);
+        game.onReset(souls::clearState);
+
+        SpidermanListener spiderman = new SpidermanListener(this, game, kits);
+        game.onReset(spiderman::clearWebs);
+
+        VampireListener vampire = new VampireListener(game, kits);
+        game.onReset(vampire::clearState);
+
+        ScorchListener scorch = new ScorchListener(game, kits);
+        game.onReset(scorch::clearTrails);
+
+        GrapplerListener grappler = new GrapplerListener(this, game, kits);
+        game.onReset(grappler::clearCooldowns);
+
+        GamblerListener gambler = new GamblerListener(game, kits);
+        game.onReset(gambler::clearTables);
+
+        GladiatorListener gladiator = new GladiatorListener(this, game, kits);
+        game.onReset(gladiator::clearDuels);
+
         for (Listener listener : new Listener[]{
                 new AdvancementListener(),
+                new EnchantingListener(this, game),
                 new ConnectionListener(game),
                 new ProtectionListener(game),
-                new DeathListener(this, game),
+                new DeathListener(this, game, stomperListener, souls),
                 new CompassListener(game),
                 new CombatListener(game),
                 new SoupListener(game),
-                new StomperListener(game, kits),
+                stomperListener,
                 new CultivatorListener(this, game, kits),
                 new EndermageListener(this, game, kits),
                 anchor,
@@ -219,7 +324,6 @@ public final class HungerGames extends JavaPlugin {
                 fisherman,
                 poseidon,
                 spy,
-                copycat,
                 new FiremanListener(game, kits),
                 new TankListener(this, game, kits),
                 new TurtleListener(game, kits),
@@ -228,13 +332,32 @@ public final class HungerGames extends JavaPlugin {
                 new BeastmasterListener(game, kits),
                 new BerserkerListener(game, kits),
                 new CannibalListener(game, kits),
+                new SnailListener(game, kits),
+                scorch,
+                new ViperListener(game, kits),
+                new ForgerListener(game, kits),
+                gambler,
+                gladiator,
+                new ReaperListener(game, kits),
+                grappler,
+                spiderman,
+                vampire,
+                souls,
+                monk,
+                hades,
+                flash,
+                switcher,
+                wisp,
+                werewolf,
                 new PyroListener(game, kits),
                 jackhammer,
                 hulk,
                 kangaroo,
                 new CookiemonsterListener(game, kits),
+                new KillCounterListener(game),
                 jellyfish,
                 launcher,
+                ninja,
                 timelord,
                 legacyCombat,
                 demoman,

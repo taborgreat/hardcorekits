@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Player stats — Minecraft Hunger Games</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main>
+  <h1>Player stats</h1>
+  <nav><a href="/">Home</a><a href="/kits.html">Kits</a><a href="/stats.html">Stats</a></nav>
+
+  <p id="totals">Loading…</p>
+
+  <h2>Top players</h2>
+  <div id="top" class="panel">Loading…</div>
+
+  <h2>Find a player</h2>
+  <form id="search">
+    <input id="name" placeholder="Minecraft username" required>
+    <button>Search</button>
+  </form>
+  <div id="result"></div>
+
+  <script>
+    function row(e) {
+      const link = '<a href="/player.html?name=' + encodeURIComponent(e.name) + '">'
+          + e.name + '</a>';
+      return '<tr><td>' + link + '</td><td>' + e.wins + '</td><td>' + e.kills
+          + '</td><td>' + e.games + '</td></tr>';
+    }
+    function table(rows) {
+      return '<table><tr><th>Player</th><th>Wins</th>'
+          + '<th>Kills</th><th>Games</th></tr>' + rows + '</table>';
+    }
+
+    document.getElementById('search').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const out = document.getElementById('result');
+      const name = document.getElementById('name').value.trim();
+      const res = await fetch('/api/stats?player=' + encodeURIComponent(name));
+      if (res.ok) {
+        location.href = '/player.html?name=' + encodeURIComponent((await res.json()).name);
+      } else {
+        out.innerHTML = '<p>No stats for "' + name
+            + '" — they may not have played a match yet.</p>';
+      }
+    });
+
+    (async () => {
+      try {
+        const s = await (await fetch('/api/status')).json();
+        document.getElementById('totals').innerHTML =
+            '<b>' + (s.totalGames || 0) + '</b> games played on this server';
+      } catch {
+        document.getElementById('totals').textContent = '';
+      }
+    })();
+
+    (async () => {
+      const el = document.getElementById('top');
+      try {
+        const top = await (await fetch('/api/stats/top')).json();
+        el.outerHTML = top.length ? table(top.map(row).join(''))
+                                  : '<p>Nobody has finished a match yet.</p>';
+      } catch {
+        el.textContent = 'Could not load the leaderboard.';
+      }
+    })();
+  </script>
+</main>
+</body>
+</html>

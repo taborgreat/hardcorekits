@@ -156,9 +156,19 @@ public final class FeastManager {
         // Keep the whole footprint inside the border.
         int limit = (int) (config.borderSize() / 2.0D) - radius - 2;
 
+        // Kept near the middle on purpose: the feast exists to pull whoever is left back into
+        // one place, and a chest cluster 400 blocks into a corner is a private restock for
+        // whoever happened to be standing there. Clamped to the border, so a spawn radius
+        // larger than the map cannot push the footprint outside it.
+        int spread = Math.max(1, Math.min(config.feastSpawnRadius(), limit));
+
         ThreadLocalRandom random = ThreadLocalRandom.current();
-        int cx = config.centerX() + random.nextInt(-limit, limit + 1);
-        int cz = config.centerZ() + random.nextInt(-limit, limit + 1);
+        // Uniform over the disc rather than the radius, so it does not cluster at the centre.
+        double angle = random.nextDouble() * 2.0D * Math.PI;
+        double distance = spread * Math.sqrt(random.nextDouble());
+
+        int cx = config.centerX() + (int) Math.round(Math.cos(angle) * distance);
+        int cz = config.centerZ() + (int) Math.round(Math.sin(angle) * distance);
 
         int highest = world.getMinHeight();
         for (int dx = -radius; dx <= radius; dx++) {

@@ -49,6 +49,8 @@ public final class GameConfig {
     private final boolean centerPreferSwamp;
     private final int centerSearchRadius;
     private final int minPlayers;
+    private final int busyPlayers;
+    private final int busyCountdownSeconds;
     private final int maxPlayers;
     private final String motd;
     private final int countdownSeconds;
@@ -68,9 +70,10 @@ public final class GameConfig {
     private final int feastCircleMinutes;
     private final int feastRadius;
     private final int feastChests;
+    private final int feastSpawnRadius;
+    private final int maxBuildHeight;
     private final double demomanExplosionPower;
     private final boolean demomanBreaksBlocks;
-    private final boolean copycatGrantsEquipment;
     private final double turtleCrouchDamage;
     private final double turtleBlockingDamage;
     private final double tankExplosionPower;
@@ -87,9 +90,48 @@ public final class GameConfig {
     private final double pyroFireballSpeed;
     private final double pyroIgniteRadius;
     private final int pyroBurnSeconds;
+    private final double pyroExplosionPower;
+    private final boolean pyroBreaksBlocks;
+    private final double viperPoisonChance;
+    private final int viperPoisonSeconds;
+    private final int reaperWitherSeconds;
+    private final int spidermanBurst;
+    private final int spidermanCooldownSeconds;
+    private final int spidermanWebSpeedLevel;
+    private final double vampirePlayerKillHeal;
+    private final double vampireMobKillHeal;
+    private final double vampireVialHeal;
+    private final double vampireVialDamage;
+    private final double vampireInvertHealth;
+    private final double grapplerPower;
+    private final int grapplerBurst;
+    private final int grapplerCooldownSeconds;
+    private final int grapplerDurabilityPerPull;
+    private final int soulstealerHuntSeconds;
+    private final int soulstealerKillSeconds;
+    private final double soulstealerDamageMultiplier;
+    private final int gamblerCooldownSeconds;
+    private final int gladiatorHeight;
+    private final int gladiatorSealSeconds;
+    private final int gladiatorLootSeconds;
+    private final double gladiatorReturnRadius;
+    private final int gladiatorCooldownSeconds;
+    private final int monkCooldownSeconds;
+    private final int hadesMaxMinions;
+    private final double flashMaxDistance;
+    private final int flashCooldownSeconds;
+    private final double snailSlowChance;
+    private final int snailSlowSeconds;
+    private final int snailSlowLevel;
+    private final int switcherCooldownSeconds;
+    private final int wispClonesPerCream;
+    private final int wispCloneLifetimeSeconds;
+    private final double wispKillerDamage;
     private final double hulkThrowPower;
     private final double hulkThrowLift;
     private final int hulkCooldownSeconds;
+    private final double hulkChargeSeconds;
+    private final double hulkChargedMultiplier;
     private final int cannibalFoodPerHit;
     private final float cannibalSaturationPerHit;
     private final int cannibalHungerSeconds;
@@ -122,10 +164,12 @@ public final class GameConfig {
     private final int poseidonLandSlownessSeconds;
     private final int poseidonLandSlownessLevel;
     private final double fishermanMaxDistance;
+    private final double fishermanHookDamage;
     private final double fishermanArcHeight;
     private final int fishermanCooldownSeconds;
     private final int barbarianKillXp;
     private final int barbarianKillXpStep;
+    private final int barbarianMobKillXp;
     private final List<SwordTier> barbarianTiers;
     private final boolean disableSweep;
     private final boolean sprintCrits;
@@ -138,12 +182,17 @@ public final class GameConfig {
     private final double knockbackVerticalLimit;
     private final double knockbackExtraHorizontal;
     private final double knockbackExtraVertical;
+    private final int poseidonWaterStrengthLevel;
+    private final int ninjaMarkSeconds;
+    private final int ninjaCooldownSeconds;
     private final int launcherSponges;
     private final double launcherPower;
     private final int launcherMaxStack;
     private final double launcherSidewaysPower;
     private final int launcherFallImmunitySeconds;
     private final int jellyfishSeconds;
+    private final int jellyfishMaxActive;
+    private final double launcherRestitution;
     private final double cookieGrassChance;
     private final int cookieFood;
     private final double cookieHeal;
@@ -173,6 +222,11 @@ public final class GameConfig {
     private final long winFireworkIntervalTicks;
     private final boolean restartOnReset;
     private final boolean freshWorldOnRestart;
+    private final boolean webEnabled;
+    private final String webBind;
+    private final int webPort;
+    private final boolean worldgenNoOceans;
+    private final int swampMushroomsPerChunk;
 
     /** Resolved lazily on first use, once the world is guaranteed to be loaded. */
     private Location cachedCenter;
@@ -181,13 +235,18 @@ public final class GameConfig {
         this.worldName = c.getString("world", "");
         this.configuredCenterX = c.getInt("center.x", 0);
         this.configuredCenterZ = c.getInt("center.z", 0);
-        this.centerAutoLand = c.getBoolean("center.auto-land", true);
-        this.centerPreferSwamp = c.getBoolean("center.prefer-swamp", true);
+        // Both default OFF since the no-oceans worldgen: with the whole map generating as
+        // land there is nothing to relocate away from, and the game wants one fixed frame —
+        // 0,0 the middle, ±500 the edges, the feast inside its radius of the same origin.
+        this.centerAutoLand = c.getBoolean("center.auto-land", false);
+        this.centerPreferSwamp = c.getBoolean("center.prefer-swamp", false);
         this.centerSearchRadius = c.getInt("center.search-radius", 6000);
-        this.minPlayers = c.getInt("min-players", 15);
+        this.minPlayers = c.getInt("min-players", 2);
+        this.busyPlayers = c.getInt("busy-players", 20);
+        this.busyCountdownSeconds = c.getInt("busy-countdown-seconds", 60);
         this.maxPlayers = c.getInt("max-players", 120);
         this.motd = c.getString("motd", "Minecraft Hunger Games");
-        this.countdownSeconds = c.getInt("countdown-seconds", 10);
+        this.countdownSeconds = c.getInt("countdown-seconds", 300);
         this.invulnerableSeconds = c.getInt("invulnerable-seconds", 120);
         this.borderSize = c.getDouble("border.size", 1000.0D);
         this.borderGraceDistance = c.getDouble("border.grace-distance", 10.0D);
@@ -202,11 +261,12 @@ public final class GameConfig {
         this.compassMinDistance = c.getDouble("compass-min-distance", 25.0D);
         this.feastMinutes = c.getInt("feast.minutes", 22);
         this.feastCircleMinutes = c.getInt("feast.circle-minutes", 17);
-        this.feastRadius = c.getInt("feast.radius", 10);
+        this.feastRadius = c.getInt("feast.radius", 15);
         this.feastChests = c.getInt("feast.chests", 12);
+        this.feastSpawnRadius = c.getInt("feast.spawn-radius", 200);
+        this.maxBuildHeight = c.getInt("build.max-height", 140);
         this.demomanExplosionPower = c.getDouble("kits.demoman.explosion-power", 4.0D);
         this.demomanBreaksBlocks = c.getBoolean("kits.demoman.break-blocks", true);
-        this.copycatGrantsEquipment = c.getBoolean("kits.copycat.grant-equipment", true);
         this.turtleCrouchDamage = c.getDouble("kits.turtle.crouch-damage", 2.0D);
         this.turtleBlockingDamage = c.getDouble("kits.turtle.blocking-damage", 1.0D);
         this.tankExplosionPower = c.getDouble("kits.tank.explosion-power", 3.0D);
@@ -223,9 +283,48 @@ public final class GameConfig {
         this.pyroFireballSpeed = c.getDouble("kits.pyro.fireball-speed", 1.2D);
         this.pyroIgniteRadius = c.getDouble("kits.pyro.ignite-radius", 3.0D);
         this.pyroBurnSeconds = c.getInt("kits.pyro.burn-seconds", 5);
+        this.pyroExplosionPower = c.getDouble("kits.pyro.explosion-power", 1.5D);
+        this.pyroBreaksBlocks = c.getBoolean("kits.pyro.breaks-blocks", true);
+        this.viperPoisonChance = c.getDouble("kits.viper.poison-chance", 0.33D);
+        this.viperPoisonSeconds = c.getInt("kits.viper.poison-seconds", 5);
+        this.reaperWitherSeconds = c.getInt("kits.reaper.wither-seconds", 5);
+        this.spidermanBurst = c.getInt("kits.spiderman.burst", 3);
+        this.spidermanCooldownSeconds = c.getInt("kits.spiderman.cooldown-seconds", 30);
+        this.spidermanWebSpeedLevel = c.getInt("kits.spiderman.web-speed-level", 4);
+        this.vampirePlayerKillHeal = c.getDouble("kits.vampire.player-kill-heal", 6.0D);
+        this.vampireMobKillHeal = c.getDouble("kits.vampire.mob-kill-heal", 2.0D);
+        this.vampireVialHeal = c.getDouble("kits.vampire.vial-heal", 4.0D);
+        this.vampireVialDamage = c.getDouble("kits.vampire.vial-damage", 2.0D);
+        this.vampireInvertHealth = c.getDouble("kits.vampire.invert-amount", 4.0D);
+        this.grapplerPower = c.getDouble("kits.grappler.power", 1.6D);
+        this.grapplerBurst = c.getInt("kits.grappler.burst", 3);
+        this.grapplerCooldownSeconds = c.getInt("kits.grappler.cooldown-seconds", 3);
+        this.grapplerDurabilityPerPull = c.getInt("kits.grappler.durability-per-pull", 4);
+        this.soulstealerHuntSeconds = c.getInt("kits.soulstealer.hunt-seconds", 10);
+        this.soulstealerKillSeconds = c.getInt("kits.soulstealer.kill-seconds", 10);
+        this.soulstealerDamageMultiplier = c.getDouble("kits.soulstealer.damage-multiplier", 0.4D);
+        this.gamblerCooldownSeconds = c.getInt("kits.gambler.cooldown-seconds", 10);
+        this.gladiatorHeight = c.getInt("kits.gladiator.height", 230);
+        this.gladiatorSealSeconds = c.getInt("kits.gladiator.seal-seconds", 60);
+        this.gladiatorLootSeconds = c.getInt("kits.gladiator.loot-seconds", 15);
+        this.gladiatorReturnRadius = c.getDouble("kits.gladiator.return-radius", 50.0D);
+        this.gladiatorCooldownSeconds = c.getInt("kits.gladiator.cooldown-seconds", 90);
+        this.monkCooldownSeconds = c.getInt("kits.monk.cooldown-seconds", 5);
+        this.hadesMaxMinions = c.getInt("kits.hades.max-minions", 5);
+        this.flashMaxDistance = c.getDouble("kits.flash.max-distance", 60.0D);
+        this.flashCooldownSeconds = c.getInt("kits.flash.cooldown-seconds", 150);
+        this.snailSlowChance = c.getDouble("kits.snail.slow-chance", 0.33D);
+        this.snailSlowSeconds = c.getInt("kits.snail.slowness-seconds", 5);
+        this.snailSlowLevel = c.getInt("kits.snail.slowness-level", 2);
+        this.switcherCooldownSeconds = c.getInt("kits.switcher.cooldown-seconds", 10);
+        this.wispClonesPerCream = c.getInt("kits.wisp.clones-per-cream", 5);
+        this.wispCloneLifetimeSeconds = c.getInt("kits.wisp.clone-lifetime-seconds", 60);
+        this.wispKillerDamage = c.getDouble("kits.wisp.killer-damage", 2.0D);
         this.hulkThrowPower = c.getDouble("kits.hulk.throw-power", 1.6D);
         this.hulkThrowLift = c.getDouble("kits.hulk.throw-lift", 0.6D);
         this.hulkCooldownSeconds = c.getInt("kits.hulk.cooldown-seconds", 5);
+        this.hulkChargeSeconds = c.getDouble("kits.hulk.charge-seconds", 2.0D);
+        this.hulkChargedMultiplier = c.getDouble("kits.hulk.charged-multiplier", 2.5D);
         this.cannibalFoodPerHit = c.getInt("kits.cannibal.food-per-hit", 2);
         this.cannibalSaturationPerHit =
                 (float) c.getDouble("kits.cannibal.saturation-per-hit", 1.0D);
@@ -259,28 +358,35 @@ public final class GameConfig {
         this.poseidonLandSlownessSeconds = c.getInt("kits.poseidon.land-slowness-seconds", 5);
         this.poseidonLandSlownessLevel = c.getInt("kits.poseidon.land-slowness-level", 1);
         this.fishermanMaxDistance = c.getDouble("kits.fisherman.max-distance", 32.0D);
+        this.fishermanHookDamage = c.getDouble("kits.fisherman.hook-hit-damage", 1.0D);
         this.fishermanArcHeight = c.getDouble("kits.fisherman.arc-height", 1.2D);
         this.fishermanCooldownSeconds = c.getInt("kits.fisherman.cooldown-seconds", 2);
         this.barbarianKillXp = c.getInt("kits.barbarian.kill-xp", 25);
         this.barbarianKillXpStep = c.getInt("kits.barbarian.kill-xp-step", 25);
+        this.barbarianMobKillXp = c.getInt("kits.barbarian.mob-kill-xp", 14);
         this.barbarianTiers = readSwordTiers(c);
         this.disableSweep = c.getBoolean("combat.disable-sweep", true);
         this.sprintCrits = c.getBoolean("combat.sprint-crits", true);
         this.noPearlCooldown = c.getBoolean("combat.no-pearl-cooldown", true);
         this.disableShields = c.getBoolean("combat.disable-shields", true);
         this.regenIntervalSeconds = c.getInt("combat.regen-interval-seconds", 4);
-        this.legacyKnockback = c.getBoolean("combat.knockback.enabled", false);
+        this.legacyKnockback = c.getBoolean("combat.knockback.enabled", true);
         this.knockbackHorizontal = c.getDouble("combat.knockback.horizontal", 0.4D);
         this.knockbackVertical = c.getDouble("combat.knockback.vertical", 0.4D);
         this.knockbackVerticalLimit = c.getDouble("combat.knockback.vertical-limit", 0.4D);
         this.knockbackExtraHorizontal = c.getDouble("combat.knockback.extra-horizontal", 0.5D);
         this.knockbackExtraVertical = c.getDouble("combat.knockback.extra-vertical", 0.1D);
+        this.poseidonWaterStrengthLevel = c.getInt("kits.poseidon.water-strength-level", 1);
+        this.ninjaMarkSeconds = c.getInt("kits.ninja.mark-seconds", 10);
+        this.ninjaCooldownSeconds = c.getInt("kits.ninja.cooldown-seconds", 7);
         this.launcherSponges = c.getInt("kits.launcher.sponges", 20);
         this.launcherPower = c.getDouble("kits.launcher.power", 0.7D);
         this.launcherMaxStack = c.getInt("kits.launcher.max-stack", 4);
         this.launcherSidewaysPower = c.getDouble("kits.launcher.sideways-power", 0.6D);
         this.launcherFallImmunitySeconds = c.getInt("kits.launcher.fall-immunity-seconds", 15);
         this.jellyfishSeconds = c.getInt("kits.jellyfish.duration-seconds", 3);
+        this.jellyfishMaxActive = c.getInt("kits.jellyfish.max-active", 6);
+        this.launcherRestitution = c.getDouble("kits.launcher.restitution", 1.15D);
         this.cookieGrassChance = c.getDouble("kits.cookiemonster.grass-drop-chance", 0.2D);
         this.cookieFood = c.getInt("kits.cookiemonster.food", 2);
         this.cookieHeal = c.getDouble("kits.cookiemonster.heal", 2.0D);
@@ -310,6 +416,11 @@ public final class GameConfig {
         this.winFireworkIntervalTicks = c.getLong("win.firework-interval-ticks", 10L);
         this.restartOnReset = c.getBoolean("restart-on-reset", true);
         this.freshWorldOnRestart = c.getBoolean("fresh-world-on-restart", true);
+        this.webEnabled = c.getBoolean("web.enabled", true);
+        this.webBind = c.getString("web.bind", "127.0.0.1");
+        this.webPort = c.getInt("web.port", 8085);
+        this.worldgenNoOceans = c.getBoolean("worldgen.no-oceans", true);
+        this.swampMushroomsPerChunk = c.getInt("worldgen.swamp-mushrooms-per-chunk", 6);
     }
 
     /**
@@ -472,6 +583,15 @@ public final class GameConfig {
         return minPlayers;
     }
 
+    /** At this many participants the countdown drops to the short fuse. */
+    public int busyPlayers() {
+        return busyPlayers;
+    }
+
+    public int busyCountdownSeconds() {
+        return busyCountdownSeconds;
+    }
+
     /**
      * Server slots.
      *
@@ -561,6 +681,16 @@ public final class GameConfig {
         return feastChests;
     }
 
+    /** How far from centre the feast may be sited. Clamped to the border. */
+    public int feastSpawnRadius() {
+        return feastSpawnRadius;
+    }
+
+    /** Highest Y a player may place a block at. Absolute, not relative to the terrain. */
+    public int maxBuildHeight() {
+        return maxBuildHeight;
+    }
+
     /** Blast strength of a Demoman mine. Vanilla TNT is 4.0. */
     public double demomanExplosionPower() {
         return demomanExplosionPower;
@@ -576,10 +706,6 @@ public final class GameConfig {
      * <p>On by default: several kits are nothing but their items, so a Demoman or Beastmaster
      * copied without them would be an empty prize.
      */
-    public boolean copycatGrantsEquipment() {
-        return copycatGrantsEquipment;
-    }
-
     /** Most a crouching Turtle takes from one hit. 2.0 = one heart. */
     public double turtleCrouchDamage() {
         return turtleCrouchDamage;
@@ -659,6 +785,176 @@ public final class GameConfig {
         return pyroBurnSeconds;
     }
 
+    /** The landing's blast. 1.5 hurts and shoves without one-shotting; TNT is 4.0. */
+    public double pyroExplosionPower() {
+        return pyroExplosionPower;
+    }
+
+    public boolean pyroBreaksBlocks() {
+        return pyroBreaksBlocks;
+    }
+
+    public double viperPoisonChance() {
+        return viperPoisonChance;
+    }
+
+    public int viperPoisonSeconds() {
+        return viperPoisonSeconds;
+    }
+
+    public int reaperWitherSeconds() {
+        return reaperWitherSeconds;
+    }
+
+    /** Webs thrown back-to-back before the arm needs its rest. */
+    public int spidermanBurst() {
+        return spidermanBurst;
+    }
+
+    public int spidermanCooldownSeconds() {
+        return spidermanCooldownSeconds;
+    }
+
+    /** Speed level worn in webbing. High, because the web's slow applies after speed does. */
+    public int spidermanWebSpeedLevel() {
+        return spidermanWebSpeedLevel;
+    }
+
+    public double vampirePlayerKillHeal() {
+        return vampirePlayerKillHeal;
+    }
+
+    public double vampireMobKillHeal() {
+        return vampireMobKillHeal;
+    }
+
+    public double vampireVialHeal() {
+        return vampireVialHeal;
+    }
+
+    public double vampireVialDamage() {
+        return vampireVialDamage;
+    }
+
+    /** Health moved (either direction) by a full-strength splash on a Vampire. */
+    public double vampireInvertHealth() {
+        return vampireInvertHealth;
+    }
+
+    /** How hard the Grappler's reel pulls them along the line. */
+    public double grapplerPower() {
+        return grapplerPower;
+    }
+
+    /** Pulls back to back before the arm needs its rest. */
+    public int grapplerBurst() {
+        return grapplerBurst;
+    }
+
+    public int grapplerCooldownSeconds() {
+        return grapplerCooldownSeconds;
+    }
+
+    /** Rod damage per pull. A fishing rod holds 64, so 4 is sixteen pulls a rod. */
+    public int grapplerDurabilityPerPull() {
+        return grapplerDurabilityPerPull;
+    }
+
+    public int soulstealerHuntSeconds() {
+        return soulstealerHuntSeconds;
+    }
+
+    public int soulstealerKillSeconds() {
+        return soulstealerKillSeconds;
+    }
+
+    /** The hunt swings at this fraction of normal damage. 0.4 is the classic 40%. */
+    public double soulstealerDamageMultiplier() {
+        return soulstealerDamageMultiplier;
+    }
+
+    /** Seconds between presses of a Gambler's button. */
+    public int gamblerCooldownSeconds() {
+        return gamblerCooldownSeconds;
+    }
+
+    /** Y of the Shadow Game floor. Clamped under the world ceiling at build time. */
+    public int gladiatorHeight() {
+        return gladiatorHeight;
+    }
+
+    /** Seconds the arena stays sealed before the walls and ceiling fall away. */
+    public int gladiatorSealSeconds() {
+        return gladiatorSealSeconds;
+    }
+
+    /** Seconds the winner gets to loot and heal before being returned to the world. */
+    public int gladiatorLootSeconds() {
+        return gladiatorLootSeconds;
+    }
+
+    /** The winner comes back within this radius of the challenge, never exactly on it. */
+    public double gladiatorReturnRadius() {
+        return gladiatorReturnRadius;
+    }
+
+    public int gladiatorCooldownSeconds() {
+        return gladiatorCooldownSeconds;
+    }
+
+    /** Seconds between Monk disarms. */
+    public int monkCooldownSeconds() {
+        return monkCooldownSeconds;
+    }
+
+    /** Head-count cap on a Hades army. The wand is free; this is the limit. */
+    public int hadesMaxMinions() {
+        return hadesMaxMinions;
+    }
+
+    /** How far a Flash can teleport in one use. */
+    public double flashMaxDistance() {
+        return flashMaxDistance;
+    }
+
+    /** 150 = the classic 2:30. */
+    public int flashCooldownSeconds() {
+        return flashCooldownSeconds;
+    }
+
+    /** Odds that a Snail's landed hit applies its slow. */
+    public double snailSlowChance() {
+        return snailSlowChance;
+    }
+
+    public int snailSlowSeconds() {
+        return snailSlowSeconds;
+    }
+
+    /** 2 = Slowness II, as the classic kit had it. */
+    public int snailSlowLevel() {
+        return snailSlowLevel;
+    }
+
+    /** Seconds between Switcher Ball throws. The ten balls are the other limit. */
+    public int switcherCooldownSeconds() {
+        return switcherCooldownSeconds;
+    }
+
+    public int wispClonesPerCream() {
+        return wispClonesPerCream;
+    }
+
+    /** Seconds a decoy wanders before removing itself. */
+    public int wispCloneLifetimeSeconds() {
+        return wispCloneLifetimeSeconds;
+    }
+
+    /** Dealt to whoever kills a decoy. 2.0 is the classic one heart. */
+    public double wispKillerDamage() {
+        return wispKillerDamage;
+    }
+
     /** Push along the Hulk's line of sight when they let go. */
     public double hulkThrowPower() {
         return hulkThrowPower;
@@ -672,6 +968,16 @@ public final class GameConfig {
     /** Seconds after a throw before the same Hulk can grab again. */
     public int hulkCooldownSeconds() {
         return hulkCooldownSeconds;
+    }
+
+    /** Seconds of held crouch that fill the throw's charge bar. */
+    public double hulkChargeSeconds() {
+        return hulkChargeSeconds;
+    }
+
+    /** Throw strength at a full bar, as a multiple of the uncharged throw. */
+    public double hulkChargedMultiplier() {
+        return hulkChargedMultiplier;
     }
 
     /** Drumsticks the Cannibal gains per hit landed on a player. */
@@ -825,6 +1131,11 @@ public final class GameConfig {
     }
 
     /** Furthest a Fisherman's reel will pull from. Beyond this the line snaps. */
+    /** The hook's own sting on connect — feedback and attribution, not the weapon. */
+    public double fishermanHookDamage() {
+        return fishermanHookDamage;
+    }
+
     public double fishermanMaxDistance() {
         return fishermanMaxDistance;
     }
@@ -842,6 +1153,11 @@ public final class GameConfig {
     /** XP a Barbarian's first kill is worth, on top of whatever the corpse drops. */
     public int barbarianKillXp() {
         return barbarianKillXp;
+    }
+
+    /** What a mob kill feeds Tyrfing. A seventh of the first player kill by default. */
+    public int barbarianMobKillXp() {
+        return barbarianMobKillXp;
     }
 
     /** How much more each kill after the first is worth than the one before it. */
@@ -905,6 +1221,21 @@ public final class GameConfig {
         return knockbackExtraVertical;
     }
 
+    /** Strength worn as a badge while a Poseidon stands in water. 0 turns the badge off. */
+    public int poseidonWaterStrengthLevel() {
+        return poseidonWaterStrengthLevel;
+    }
+
+    /** Seconds a Ninja's hit stays worth teleporting to. */
+    public int ninjaMarkSeconds() {
+        return ninjaMarkSeconds;
+    }
+
+    /** Seconds between a Ninja's jumps. */
+    public int ninjaCooldownSeconds() {
+        return ninjaCooldownSeconds;
+    }
+
     /** Sponges in the Launcher's starting kit. */
     public int launcherSponges() {
         return launcherSponges;
@@ -933,6 +1264,16 @@ public final class GameConfig {
     /** Seconds a Jellyfish's conjured water lasts before it is taken back. */
     public int jellyfishSeconds() {
         return jellyfishSeconds;
+    }
+
+    /** Most conjured waters one Jellyfish may have standing at once. */
+    public int jellyfishMaxActive() {
+        return jellyfishMaxActive;
+    }
+
+    /** Fraction of falling speed a pad returns as bounce. Above 1.0, bounces grow. */
+    public double launcherRestitution() {
+        return launcherRestitution;
     }
 
     /** Chance a Cookiemonster's broken grass drops a cookie. */
@@ -1070,6 +1411,34 @@ public final class GameConfig {
     }
 
     /** Whether a restart leaves the old map behind and generates a new one. */
+    public boolean webEnabled() {
+        return webEnabled;
+    }
+
+    /** Loopback by default — the website's Node process is the audience, not the internet. */
+    public String webBind() {
+        return webBind;
+    }
+
+    public int webPort() {
+        return webPort;
+    }
+
+    /**
+     * Whether rotated worlds are born with the no-oceans datapack.
+     *
+     * <p>Only takes effect through {@link gg.hungergames.world.WorldRotator} — a world reads
+     * datapacks as it is generated, so the running world's terrain is already decided.
+     */
+    public boolean worldgenNoOceans() {
+        return worldgenNoOceans;
+    }
+
+    /** Extra mushrooms planted per swamp chunk by the WorldShaper. 0 turns it off. */
+    public int swampMushroomsPerChunk() {
+        return swampMushroomsPerChunk;
+    }
+
     public boolean freshWorldOnRestart() {
         return freshWorldOnRestart;
     }

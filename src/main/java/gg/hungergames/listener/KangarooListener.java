@@ -1,9 +1,11 @@
 package gg.hungergames.listener;
 
+import gg.hungergames.HungerGames;
 import gg.hungergames.game.GameConfig;
 import gg.hungergames.game.GameManager;
 import gg.hungergames.kit.KitRegistry;
 import gg.hungergames.kit.kits.KangarooKit;
+import gg.hungergames.util.CooldownBar;
 import gg.hungergames.util.Interact;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -37,13 +39,15 @@ import java.util.UUID;
  */
 public final class KangarooListener implements Listener {
 
+    private final HungerGames plugin;
     private final GameManager game;
     private final KitRegistry kits;
 
     /** When each Kangaroo's fall-damage immunity runs out. */
     private final Map<UUID, Long> softLandingUntil = new HashMap<>();
 
-    public KangarooListener(GameManager game, KitRegistry kits) {
+    public KangarooListener(HungerGames plugin, GameManager game, KitRegistry kits) {
+        this.plugin = plugin;
         this.game = game;
         this.kits = kits;
     }
@@ -66,7 +70,7 @@ public final class KangarooListener implements Listener {
             return;
         }
         Player player = event.getPlayer();
-        if (!game.state().isLive() || !kits.hasKit(player, KangarooKit.ID)) {
+        if (!game.state().isLive() || !kits.canUseAbility(player, KangarooKit.ID)) {
             return; // anyone else gets an ordinary firework
         }
         if (action == Action.RIGHT_CLICK_BLOCK && Interact.opensBlock(event)) {
@@ -98,7 +102,7 @@ public final class KangarooListener implements Listener {
             return;
         }
         Player attacker = attacker(event);
-        if (attacker == null || !kits.hasKit(attacker, KangarooKit.ID)) {
+        if (attacker == null || !kits.canUseAbility(attacker, KangarooKit.ID)) {
             return;
         }
 
@@ -106,6 +110,8 @@ public final class KangarooListener implements Listener {
         softLandingUntil.put(attacker.getUniqueId(), System.currentTimeMillis() + seconds * 1000L);
         attacker.sendActionBar(Component.text("No fall damage for " + seconds + "s.",
                 NamedTextColor.GREEN));
+        // The window, drawn draining on the XP bar. The fill only — the level stays kills.
+        CooldownBar.show(plugin, game, attacker, seconds);
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)

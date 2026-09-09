@@ -18,8 +18,11 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 
+import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * The Jellyfish's water.
@@ -29,7 +32,9 @@ import java.util.Set;
  * which is what lets a match reset mop up anything a disconnect or a crash left standing.
  *
  * <p>Only ever placed into air, fire or something else replaceable — the kit conjures water,
- * it does not delete terrain.
+ * it does not delete terrain. And never against existing water: two touching sources breed a
+ * third, and a bred source outlives the cleanup — which is exactly how the "infinite spring"
+ * glitch was made. Refusing adjacency kills the whole family of it.
  */
 public final class JellyfishListener implements Listener {
 
@@ -39,6 +44,13 @@ public final class JellyfishListener implements Listener {
 
     /** Water this kit is responsible for, so a reset can take back anything still standing. */
     private final Set<Location> conjured = new LinkedHashSet<>();
+    /** Live conjurings per player, against the cap. */
+    private final Map<UUID, Integer> active = new HashMap<>();
+
+    private static final org.bukkit.block.BlockFace[] TOUCHING = {
+            org.bukkit.block.BlockFace.NORTH, org.bukkit.block.BlockFace.SOUTH,
+            org.bukkit.block.BlockFace.EAST, org.bukkit.block.BlockFace.WEST,
+            org.bukkit.block.BlockFace.UP, org.bukkit.block.BlockFace.DOWN};
 
     public JellyfishListener(HungerGames plugin, GameManager game, KitRegistry kits) {
         this.plugin = plugin;
@@ -55,6 +67,7 @@ public final class JellyfishListener implements Listener {
             }
         }
         conjured.clear();
+        active.clear();
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -64,7 +77,7 @@ public final class JellyfishListener implements Listener {
             return;
         }
         Player player = event.getPlayer();
-        if (!game.state().isLive() || !kits.hasKit(player, JellyfishKit.ID)) {
+        if (!game.state().isLive() || !kits.canUseAbility(player, JellyfishKit.ID)) {
             return;
         }
         // With a fist, as the kit says: anything held is used for whatever it is for.
@@ -85,6 +98,22 @@ public final class JellyfishListener implements Listener {
             return;
         }
 
+        // Never against existing water — sources that touch breed new sources, and those
+        // outlive the cleanup. This is the infinite-spring glitch, refused at the door.
+        for (org.bukkit.block.BlockFace face : TOUCHING) {
+            if (target.getRelative(face).getType() == Material.WATER) {
+                player.sendActionBar(Component.text("Too close to water.", NamedTextColor.AQUA));
+                return;
+            }
+        }
+
+        int cap = game.config().jellyfishMaxActive();
+        if (active.getOrDefault(player.getUniqueId(), 0) >= cap) {
+            player.sendActionBar(Component.text("Too much water in play (" + cap
+                    + "). Wait for some to drain.", NamedTextColor.AQUA));
+            return;
+        }
+
         conjure(player, target);
     }
 
@@ -94,10 +123,13 @@ public final class JellyfishListener implements Listener {
 
         target.setType(Material.WATER);
         conjured.add(where);
+        active.merge(player.getUniqueId(), 1, Integer::sum);
         target.getWorld().playSound(where, Sound.ITEM_BUCKET_EMPTY, 1.0F, 1.2F);
 
+        UUID owner = player.getUniqueId();
         Phases.delayed(plugin, seconds, () -> {
             conjured.remove(where);
+            active.merge(owner, -1, Integer::sum);
             Block block = where.getBlock();
             // Only take back water. Anything else means the world moved on without us.
             if (block.getType() == Material.WATER) {

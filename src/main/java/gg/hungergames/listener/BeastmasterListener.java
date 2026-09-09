@@ -54,7 +54,7 @@ public final class BeastmasterListener implements Listener {
             return;
         }
         Player player = event.getPlayer();
-        if (!kits.hasKit(player, BeastmasterKit.ID) || wolf.isTamed()) {
+        if (!kits.canUseAbility(player, BeastmasterKit.ID) || wolf.isTamed()) {
             return;
         }
 

@@ -59,11 +59,9 @@ import java.util.UUID;
  * <p>What is not here: sword blocking, which needs the client to be holding an item it cannot
  * be given, and true 1.8 hit-delay behaviour, which lives below the API.
  *
- * <p>The knockback rewrite is <b>off by default</b> ({@code combat.knockback.enabled}). It
- * shipped with both of its vectors inverted, which played as hits throwing people in the wrong
- * direction and much too far; the signs are corrected below, but vanilla knockback is the
- * known-good baseline and this stays off until someone has fought a match with it on. Kit
- * knockback — the Anchor's rules and the rest — is unrelated and untouched by the switch.
+ * <p>The knockback rewrite is on by default and its direction is measured, not assumed:
+ * a test victim parked beside an attacker flies away from the swing, ~2 blocks a bare
+ * hit. {@code combat.knockback.enabled} falls back to vanilla if it ever needs to.
  */
 public final class LegacyCombatListener implements Listener {
 
@@ -159,8 +157,14 @@ public final class LegacyCombatListener implements Listener {
         Bukkit.getScheduler().runTask(plugin, () -> player.setCooldown(Material.ENDER_PEARL, 0));
     }
 
-    /** A shield that reached the map some other way still cannot be raised. */
-    @EventHandler(ignoreCancelled = true)
+    /**
+     * A shield that reached the map some other way still cannot be raised.
+     *
+     * <p>Not {@code ignoreCancelled}: raising a shield is a click on air, and an air click
+     * always reports cancelled because {@code useInteractedBlock} is DENY when there is no
+     * block. Ignoring cancelled events would skip exactly the case this exists for.
+     */
+    @EventHandler
     public void onRaiseShield(PlayerInteractEvent event) {
         Action action = event.getAction();
         if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) {
@@ -213,14 +217,17 @@ public final class LegacyCombatListener implements Listener {
             return; // fully resistant, so vanilla's own handling is already correct
         }
 
-        // The push itself, not the resulting velocity. The server still does the halving and
-        // the vertical clamp around this — which is why this must NOT cancel the event and set
-        // velocity by hand: the hit is still being processed, and whatever is written here is
-        // overwritten a moment later, leaving the victim standing exactly where they were.
+        // The event's vector is the final applied knockback (measured: a cow parked east of
+        // the attacker flew further east, ~1.9 blocks per bare hit). 1.8 folded half the
+        // victim's existing motion into it, which is what lets consecutive hits chain into a
+        // combo instead of each one starting from rest — so that half is folded in here too,
+        // with the lift capped the way 1.8 capped it.
+        Vector carried = victim.getVelocity().multiply(0.5D);
         double horizontal = config.knockbackHorizontal() * resisted;
-        double x = dx / separation * horizontal;
-        double z = dz / separation * horizontal;
-        double y = config.knockbackVertical() * resisted;
+        double x = carried.getX() + dx / separation * horizontal;
+        double z = carried.getZ() + dz / separation * horizontal;
+        double y = Math.min(config.knockbackVerticalLimit(),
+                carried.getY() + config.knockbackVertical() * resisted);
 
         int level = knockbackLevel(attacker);
         if (level > 0) {
@@ -230,7 +237,8 @@ public final class LegacyCombatListener implements Listener {
             double bonus = level * config.knockbackExtraHorizontal() * resisted;
             x += -Math.sin(yaw) * bonus;
             z += Math.cos(yaw) * bonus;
-            y += config.knockbackExtraVertical() * resisted;
+            y = Math.min(config.knockbackVerticalLimit() + config.knockbackExtraVertical(),
+                    y + config.knockbackExtraVertical() * resisted);
         }
 
         event.setKnockback(new Vector(x, y, z));

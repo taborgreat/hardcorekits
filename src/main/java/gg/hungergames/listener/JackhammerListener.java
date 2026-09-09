@@ -4,6 +4,7 @@ import gg.hungergames.HungerGames;
 import gg.hungergames.game.GameManager;
 import gg.hungergames.kit.KitRegistry;
 import gg.hungergames.kit.kits.JackhammerKit;
+import gg.hungergames.util.CooldownBar;
 import gg.hungergames.util.Phases;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -66,7 +67,7 @@ public final class JackhammerListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
-        if (!game.state().isLive() || !kits.hasKit(player, JackhammerKit.ID)) {
+        if (!game.state().isLive() || !kits.canUseAbility(player, JackhammerKit.ID)) {
             return;
         }
         if (player.getInventory().getItemInMainHand().getType() != JackhammerKit.HAMMER) {
@@ -150,6 +151,8 @@ public final class JackhammerListener implements Listener {
         cooling.add(uuid);
         player.sendMessage(Component.text("Your hammer is spent. " + cooldown + "s to cool.",
                 NamedTextColor.GRAY));
+        // The rest, drawn draining on the XP bar. The fill only — the level stays kills.
+        CooldownBar.show(plugin, game, player, cooldown);
 
         Phases.delayed(plugin, cooldown, () -> {
             cooling.remove(uuid);

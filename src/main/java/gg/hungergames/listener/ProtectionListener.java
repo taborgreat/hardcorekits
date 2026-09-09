@@ -1,6 +1,8 @@
 package gg.hungergames.listener;
 
 import gg.hungergames.game.GameManager;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -84,8 +86,30 @@ public final class ProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onPlace(BlockPlaceEvent event) {
-        if (game.state().isPreGame() && !event.getPlayer().hasPermission("hungergames.admin")) {
+        Player player = event.getPlayer();
+        if (player.hasPermission("hungergames.admin")) {
+            return;
+        }
+        if (game.state().isPreGame()) {
             event.setCancelled(true);
+            return;
+        }
+
+        // The build ceiling. Towering is a legitimate move — it is how you break line of sight,
+        // escape a melee, or answer a Stomper — so the limit is set high enough that a normal
+        // tower still works, and only stops the sky pillar nobody can reach or fight.
+        //
+        // Deliberately an absolute height rather than a height above the local ground: the
+        // ground moves as you build on it, so a relative rule is one a player climbs out of a
+        // block at a time. The cost is that the tallest natural peaks are already at the
+        // ceiling, which is the right way round — high terrain is an advantage you have to
+        // walk to, not one you carry a stack of dirt to.
+        if (event.getBlock().getY() > game.config().maxBuildHeight()) {
+            event.setCancelled(true);
+            // Action bar, not chat: this fires on every held-down placement attempt.
+            player.sendActionBar(Component.text(
+                    "Build limit — nothing goes above y=" + game.config().maxBuildHeight() + ".",
+                    NamedTextColor.RED));
         }
     }
 

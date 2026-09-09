@@ -34,7 +34,8 @@ public final class KitCommand implements CommandExecutor, TabCompleter {
                              @NotNull String label, String @NotNull [] args) {
 
         if (command.getName().equalsIgnoreCase("kits")) {
-            listKits(sender);
+            int page = args.length > 0 ? parsePage(args[0]) : 1;
+            listKits(sender, page);
             return true;
         }
 
@@ -112,11 +113,36 @@ public final class KitCommand implements CommandExecutor, TabCompleter {
         }
     }
 
-    private void listKits(CommandSender sender) {
-        Msg.info(sender, "Available kits:");
-        for (Kit kit : kits.all()) {
+    /** Kits per page of {@code /kits}. There are far more than fit one screen. */
+    private static final int KITS_PER_PAGE = 8;
+
+    private void listKits(CommandSender sender, int page) {
+        List<Kit> all = new ArrayList<>(kits.all());
+        int pages = Math.max(1, (all.size() + KITS_PER_PAGE - 1) / KITS_PER_PAGE);
+        page = Math.max(1, Math.min(page, pages));
+
+        Msg.info(sender, "Kits, page " + page + " of " + pages
+                + ". Type /kits " + (page < pages ? page + 1 : 1) + " for more.");
+        int from = (page - 1) * KITS_PER_PAGE;
+        int to = Math.min(from + KITS_PER_PAGE, all.size());
+        for (Kit kit : all.subList(from, to)) {
             sender.sendMessage(Component.text("  " + kit.id(), NamedTextColor.GREEN)
-                    .append(Component.text(": " + kit.description(), NamedTextColor.GRAY)));
+                    .append(Component.text(": " + clean(kit.description()), NamedTextColor.GRAY)));
+        }
+    }
+
+    /** No dashes in the menu: a sentence break becomes a period, a stray dash a comma. */
+    private static String clean(String description) {
+        return description.replace(" — ", ". ").replace("—", ", ")
+                .replace(" - ", ". ").replace("-", " ")
+                .replaceAll("\\s+", " ").trim();
+    }
+
+    private static int parsePage(String arg) {
+        try {
+            return Integer.parseInt(arg);
+        } catch (NumberFormatException e) {
+            return 1;
         }
     }
 

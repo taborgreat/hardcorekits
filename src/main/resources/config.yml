@@ -6,30 +6,32 @@
 # fresh-world-on-restart below, since that hands the next boot a new world folder every time.
 world: ''
 
-# Map centre. Pre-game gathering point and the countdown teleport target.
+# Map centre. Pre-game gathering point, the countdown teleport target, and the fixed frame
+# everything else measures from: the border's ±500 edges, the feast's spawn radius, respawns.
 # Y is resolved automatically to the surface.
 center:
   x: 0
   z: 0
-  # If the configured centre lands in water, move it to the nearest inland biome instead.
-  # This does NOT make the world less watery — terrain height and sea level come from the
-  # noise generator, not from biomes, so no plugin setting can remove ocean. What it does is
-  # stop the 1000-block play area being centred on open sea, which is the part that matters
-  # since the whole match happens inside that box. For genuinely drier worldgen you need a
-  # datapack overriding minecraft:worldgen/noise_settings, or a hand-picked level-seed.
-  auto-land: true
-  # Prefer to centre the map on a swamp. Mushroom stew is the healing economy, so this puts
-  # soup within reach of the fighting rather than leaving it to whoever spawned near one.
-  # It cannot make the world contain more swamps — only put the play area on one.
-  prefer-swamp: true
+  # Relocation switches, both OFF since the no-oceans worldgen. They existed to drag the play
+  # area off open sea, and with the whole map generating as land they only move the goalposts:
+  # 0,0 stays the middle, always. Turn auto-land back on ONLY if worldgen.no-oceans is turned
+  # off — a map centred on ocean is worse than a moved reference frame.
+  auto-land: false
+  prefer-swamp: false
   # How far to look for that land. Costs nothing to raise — the biome search does not
   # generate chunks.
   search-radius: 6000
 
-# Players required before the countdown starts on its own.
-# To test solo use /hgstart, or /hgfake add <n> to pad the count. Do not drop this to 1 —
-# a single join then silently starts a match.
-min-players: 15
+# Players required before the countdown starts on its own — and required to KEEP counting:
+# dropping below this mid-countdown cancels the start. 2 is the launch posture (you and one
+# opponent make a match); raise it as the server grows. Do not drop this to 1 — a single
+# join then silently starts a match. To test solo use /hgstart, or /hgfake add <n>.
+min-players: 2
+
+# At this many participants the countdown collapses to the short fuse below — a full lobby
+# should not stare at a five-minute clock. Raise as the server grows.
+busy-players: 20
+busy-countdown-seconds: 60
 
 # Server slots. Applied at startup, overriding whatever server.properties says — that file is
 # rewritten on shutdown for world rotation, so this is the one place worth changing.
@@ -39,9 +41,10 @@ max-players: 120
 # server.properties is not the authority here.
 motd: 'Minecraft Hunger Games'
 
-# Seconds of countdown once the threshold is hit. Kits lock at the start of this.
-# Announced on the standard ladder: 30, 15, 10, then every second from 5 down.
-countdown-seconds: 30
+# Seconds of countdown once the threshold is hit, when the lobby is below busy-players.
+# Long on purpose: with a 2-player floor, the five minutes is the window for more people to
+# wander in. Announced on the standard ladder: every minute, 30, 15, 10, then 5 down.
+countdown-seconds: 300
 
 # Grace period after the drop. Player-dealt damage is blocked; environment damage is not.
 invulnerable-seconds: 120
@@ -84,17 +87,39 @@ combat-log-seconds: 3
 # Compass refuses to lock on to anyone closer than this, so it cannot be used at knife range.
 compass-min-distance: 25
 
+# The build ceiling. Blocks cannot be placed above this Y, which stops the unreachable sky
+# pillar without taking towering away — breaking line of sight, getting out of a melee and
+# answering a Stomper are all still on.
+#
+# 140 sits above ordinary terrain and below the extremes. Sea level is 63, plains and forest
+# run to about 90, and hills and windswept terrain to about 120 — so from anywhere you would
+# normally fight, this is 30 to 70 blocks of headroom, which is more tower than anyone needs.
+# What it does not clear is a jagged or frozen peak, which vanilla still generates well above
+# it; standing on one of those you are already at the ceiling and cannot build higher. That is
+# the right way round — high ground is an advantage you walk to, not one you carry dirt to.
+#
+# It is an absolute height rather than a height above the ground beneath you, because ground
+# you have built on counts as ground: a relative limit is one you climb out of a block at a
+# time.
+#
+# Admins are exempt, and it does not apply to blocks the plugin places itself (the feast, the
+# End Game box).
+build:
+  max-height: 140
+
 feast:
   # Minutes into the match when the chests appear.
   minutes: 22
   # Minutes into the match when the circle is built (5 minutes of warning by default).
   circle-minutes: 17
-  # Radius of the grass circle. 36 gives a 72-wide clearing.
-  # Cost scales with the square: this is ~4000 floor blocks and ~24000 headroom checks, all
-  # placed in one tick when the circle appears. If that hitches, this is the number to drop.
-  radius: 36
+  # Radius of the grass circle. 15 gives a 30-wide clearing, placed in one tick.
+  radius: 15
   # Chests placed in a ring around the enchanting table.
   chests: 12
+  # How far from the middle of the map the feast may land, in blocks. The whole point of the
+  # feast is pulling whoever is left back into one place, so it stays near the centre rather
+  # than anywhere inside the border. Clamped to the border if this is set larger than the map.
+  spawn-radius: 200
 
 # The End Game. At sixty minutes the match ends whether the players have settled it or not:
 # everyone still alive is sealed into a bedrock box in the sky and lava is poured in from the
@@ -144,12 +169,11 @@ combat:
   knockback:
     # 1.8 melee knockback. false keeps whatever the current version does.
     #
-    # OFF by default. The hand-rolled version shipped inverted — the push pointed from the
-    # victim towards the attacker instead of away, and the sprint bonus ran opposite the
-    # attacker's facing — which read in game as hits landing in the wrong direction and far too
-    # hard. The signs are fixed now, but vanilla knockback is the known-good baseline and this
-    # stays off until someone has actually fought with it on and is happy.
-    enabled: false
+    # ON, and verified by measurement rather than by reading signs: a stationary test victim
+    # parked beside an attacker is knocked ~2 blocks AWAY from the swing. Half the victim's
+    # existing motion carries into each hit (that is what makes combos chain), and the lift is
+    # capped at vertical-limit like 1.8 capped it.
+    enabled: true
     # Straight-line push away from the attacker.
     horizontal: 0.4
     # Lift. 1.9 only lifts a victim standing on the ground; 1.8 lifted them every hit, which
@@ -162,32 +186,51 @@ combat:
 
 kits:
   barbarian:
-    # Tyrfing tracks XP *earned*, never the XP bar being carried — so spending levels at the
-    # feast enchanting table cannot cost a Barbarian their edge.
+    # Tyrfing tracks XP *earned*, never the XP bar being carried, so nothing a Barbarian does
+    # with their XP can cost them an edge.
     # XP the first kill is worth, on top of whatever the corpse drops.
-    kill-xp: 25
-    # ...and every kill after the first is worth this much more than the last: 25, 50, 75, 100.
-    # Kills are the fast lane, not the only one — mobs, ore and bottles all feed the sword.
-    kill-xp-step: 25
+    kill-xp: 100
+    # ...and every kill after the first is worth this much more than the last: 100, 200, 300.
+    # Running totals by kill count:
+    #   1 = 100, 2 = 300, 3 = 600, 4 = 1000, 5 = 1500, 6 = 2100, 7 = 2800, 8 = 3600,
+    #   9 = 4500, 10 = 5500.
+    kill-xp-step: 100
+    # What a mob kill is worth. Seven mobs to a player kill is the intended exchange rate, so
+    # this is kill-xp / 7 — hunting is a real way to grow the sword rather than a rounding
+    # error, and a Barbarian who never finds a fight can still reach the feast holding iron.
+    # The mob's own dropped XP lands on top of this, so in practice it is nearer six.
+    #
+    # It stays the slow lane by design, because player kills escalate and mobs do not: the
+    # first kill is seven mobs, the fourth is nearer thirty.
+    mob-kill-xp: 14
     # The ladder, cheapest rung first. `xp` is the running total of earned XP that buys the
     # rung, `material` is any sword, `sharpness` is optional. Reaching a rung reforges the
-    # sword where it sits. Defaults land roughly one rung per kill.
+    # sword where it sits.
+    #
+    # Kills are what move this: one for stone, two for iron, four for diamond, six for the
+    # first sharpness and eight for the second. Rungs sit just under the running total for
+    # that kill, so grinding can shave one but never skip it.
+    #
+    # Hunting is the other route, at seven mobs to the kill: ~7 mobs for stone, ~21 for iron,
+    # ~50 for diamond. Ore, bottles and furnaces count too — anything that would have gone in
+    # the XP bar goes on the sword, and because it is the earned total rather than the bar,
+    # spending the levels at the feast table costs nothing.
     tiers:
       - xp: 0
         material: WOODEN_SWORD
-      - xp: 20
+      - xp: 100
         material: STONE_SWORD
-      - xp: 60
+      - xp: 300
         material: IRON_SWORD
-      - xp: 120
+      - xp: 700
         material: DIAMOND_SWORD
-      - xp: 200
+      - xp: 2000
         material: DIAMOND_SWORD
         sharpness: 1
-      - xp: 300
+      - xp: 3400
         material: DIAMOND_SWORD
         sharpness: 2
-      - xp: 450
+      - xp: 5200
         material: DIAMOND_SWORD
         sharpness: 3
   digger:
@@ -216,6 +259,10 @@ kits:
     # stronger than a Strength I potion. Only the attacker's own footing counts, and only for
     # swings: arrows are ordinary wherever they are fired from.
     water-damage-multiplier: 1.6
+    # Strength worn while standing in water, purely so the buff is visible: the effect's own
+    # damage is taken back out before the multiplier above is applied, so this changes the
+    # icon and nothing else. 0 for no badge.
+    water-strength-level: 1
     # Seconds of Slowness on leaving the water. Getting back in cancels it early, so the
     # penalty only ever applies on land.
     land-slowness-seconds: 5
@@ -225,6 +272,9 @@ kits:
     # Furthest the reel will pull from. A vanilla cast reaches about 33 blocks, so this is
     # effectively "as far as you can throw it" — past it the line snaps instead.
     max-distance: 32.0
+    # Damage dealt by the hook connecting, before the pull. Small on purpose: it is feedback
+    # and kill attribution, not the weapon. 1.0 = half a heart.
+    hook-hit-damage: 1.0
     # Blocks the reel arcs above the victim before dropping them on you. Long pulls arc higher
     # than this on their own, and pulling someone up to you adds the climb. Flight time is
     # solved from the arc, so lower is a flatter, faster snap that terrain blocks more often.
@@ -275,11 +325,6 @@ kits:
     uses: 3
     # Seconds of rest once those are spent. Trying to strike during it shows the time left.
     cooldown-seconds: 5
-  copycat:
-    # Whether taking someone's kit also hands over its starting equipment. On by default:
-    # several kits are nothing but their items, so a Demoman or Beastmaster copied without
-    # them would be an empty prize. Turn off to copy abilities only.
-    grant-equipment: true
   pyro:
     # How hard a charge is thrown. The fireball is a blaze's, so this is the only thing
     # separating a lob over a wall from a shot across the feast.
@@ -289,6 +334,105 @@ kits:
     ignite-radius: 3.0
     # Seconds everything in that radius burns. The thrower is always left out of it.
     burn-seconds: 5
+    # The landing detonates. 1.5 hurts and shoves without one-shotting anyone; TNT is 4.0
+    # and at that strength a direct hit was a kill. Dropped loot survives it (game-wide rule).
+    explosion-power: 1.5
+    breaks-blocks: true
+  viper:
+    # Odds per landed hit on a player of applying Poison. Poison never kills — it stops at
+    # half a heart — which is why it causes panic rather than deaths.
+    poison-chance: 0.33
+    poison-seconds: 5
+  reaper:
+    # Wither applied by every wooden-hoe hit. Unlike poison, wither CAN kill, and it blacks
+    # out the victim's hearts so they cannot read their own health.
+    wither-seconds: 5
+  spiderman:
+    # Snowballs thrown back-to-back before the cooldown. The snowballs themselves are
+    # ordinary and replenishable — the burst is the only limit.
+    burst: 3
+    cooldown-seconds: 30
+    # Speed level worn while standing in any cobweb. 4 (Speed IV), because a web crushes
+    # movement AFTER speed is applied — Speed II in a web still feels like wading in glue.
+    web-speed-level: 4
+  vampire:
+    # Health restored by kills. 6.0 = three hearts for a player, a sip for a mob.
+    player-kill-heal: 6.0
+    mob-kill-heal: 2.0
+    # The earned vial: thrown, it heals the Vampire and hurts everyone else it wets.
+    vial-heal: 4.0
+    vial-damage: 2.0
+    # A Vampire's chemistry runs backwards. This is the health moved by a full-strength
+    # splash: harming heals them this much, healing hurts them this much.
+    invert-amount: 4.0
+  grappler:
+    # Pull strength along the line. Lift is added on top, growing gently with distance.
+    power: 1.6
+    # Pulls back to back before the cooldown — air-lunges included, which is what keeps the
+    # free-swing movement fun without making it flight.
+    burst: 3
+    cooldown-seconds: 3
+    # Rod damage per pull. A rod holds 64 durability, so 4 is sixteen pulls before it snaps
+    # and the Grappler needs to find a new rod — spam has a price, swinging is a resource.
+    durability-per-pull: 4
+  soulstealer:
+    # The two windows: invisible seconds to touch someone, then seconds to finish them.
+    hunt-seconds: 10
+    kill-seconds: 10
+    # The hunt swings at this fraction of normal damage — the second life is stolen from
+    # behind, not won in a fair rematch.
+    damage-multiplier: 0.4
+  forger:
+    # No numbers to tune: one coal always smelts one ore, instantly, in the inventory.
+    # The 3 starting coal live in the kit; everything after that is mined or looted.
+    enabled-note: 'iron, gold and copper, ores and raw forms alike'
+  gambler:
+    # Seconds between presses. Long enough that the button is a wager, not a slot machine
+    # being fed until the diamonds come out.
+    cooldown-seconds: 10
+  gladiator:
+    # Y of the Shadow Game floor, directly above wherever the challenge was thrown.
+    height: 230
+    # Seconds the box stays sealed bedrock. After this the walls and ceiling fall away and
+    # jumping off becomes a legal answer.
+    seal-seconds: 60
+    # Seconds the winner gets to loot the body and heal before being returned below.
+    loot-seconds: 15
+    # The winner lands at a random spot within this range of the challenge point — never
+    # exactly on it, to spite whoever is camping the return.
+    return-radius: 50
+    cooldown-seconds: 90
+  monk:
+    # Seconds between disarming touches. An empty hand never spends it.
+    cooldown-seconds: 5
+  hades:
+    # Most minions one Hades can field at once. The iron ingot is a wand, not a cost, so
+    # this cap is the whole limit on the army.
+    max-minions: 5
+  flash:
+    # How far one flash can carry you. Weakness is 1 second per 2 blocks travelled, so range
+    # prices itself.
+    max-distance: 60
+    # The classic 2:30, drawn on the torch and the XP bar.
+    cooldown-seconds: 150
+  snail:
+    # Odds per landed hit — on players and mobs alike — of applying the slow.
+    slow-chance: 0.33
+    slowness-seconds: 5
+    # 2 = Slowness II, the classic value.
+    slowness-level: 2
+  switcher:
+    # Seconds between throws. The other limit is the ten balls themselves — ordinary
+    # snowballs never become Switcher Balls, so every dodge spends the kit.
+    cooldown-seconds: 10
+  wisp:
+    # Decoys per magma cream. Silent stand-ins in the Wisp's armour and name; they scatter,
+    # never attack, and their deaths pay nothing.
+    clones-per-cream: 5
+    # Seconds a decoy wanders before removing itself, so spent creams do not haunt the map.
+    clone-lifetime-seconds: 60
+    # Dealt to whoever kills a decoy. 2.0 is the classic one heart.
+    killer-damage: 2.0
   hulk:
     # Push along the line of sight when the Hulk lets go. 1.6 clears a good gap; raise it and
     # the throw starts reading as a launch rather than a shove.
@@ -299,6 +443,13 @@ kits:
     # Seconds after a throw before the same Hulk can pick someone up again. Without it a Hulk
     # can re-grab the instant they land and nobody ever touches the ground.
     cooldown-seconds: 5
+    # Holding crouch while carrying winds the throw up; this is how many seconds of crouch
+    # fill the bar. The charge shows on the XP bar's fill — the level number stays kills.
+    charge-seconds: 2.0
+    # Throw strength at a full bar, as a multiple of the uncharged throw. The wind-up is the
+    # counterweight: a Hulk crouching with someone on their shoulders is telling the whole
+    # fight what happens next.
+    charged-multiplier: 2.5
   cannibal:
     # Drumsticks gained per hit landed on another player. Hits on mobs deliberately give
     # nothing — feeding off a cow would make the kit's whole hunt-people premise optional.
@@ -332,21 +483,36 @@ kits:
     immunity-seconds: 5
     # Seconds before the portal returns to the inventory. Only one can be in play at a time.
     cooldown-seconds: 30
+  ninja:
+    # Seconds after landing a hit that you can still teleport to that player.
+    mark-seconds: 10
+    # Seconds between jumps. This is what stops the kit being a tether.
+    cooldown-seconds: 7
   launcher:
     # Sponges in the starting kit.
     sponges: 20
-    # Upward kick per sponge in the stack. A vanilla jump is about 0.42.
-    power: 0.7
+    # Upward kick per sponge in the stack. A vanilla jump is about 0.42. 0.58 x a full
+    # 5-stack is ~2.9, which peaks near 60 blocks — the intended ceiling.
+    power: 0.58
     # Sponges past this one stop adding height, so a tower of them is not a rocket.
-    max-stack: 4
-    # Sideways push when the pad is lopsided. An even pad throws straight up regardless.
-    sideways-power: 0.6
+    max-stack: 5
+    # Fraction of your falling speed a pad returns as bounce. 1.0 gives your fall straight
+    # back (dropping onto a pad still bounces you), without the runaway growth >1.0 caused.
+    restitution: 1.0
+    # Sideways push when the pad is lopsided. OFF by default: it read as bouncing at weird
+    # angles off ordinary flat pads. Your own running momentum carries through the bounce
+    # instead, which is the direction control that actually feels right.
+    sideways-power: 0.0
     # Seconds a launched player is owed a free landing.
     fall-immunity-seconds: 15
   jellyfish:
     # Seconds the conjured water lasts. Long enough to break a fall or douse a fire, short
     # enough that it never becomes terrain.
     duration-seconds: 3
+    # Most conjured waters standing at once. They drain after a few seconds, so this is a
+    # rate limit, not a budget. Placing against existing water is always refused — touching
+    # sources breed permanent springs.
+    max-active: 6
   cookiemonster:
     # Chance that breaking a patch of grass drops a cookie.
     grass-drop-chance: 0.2
@@ -388,8 +554,11 @@ kits:
   stomper:
     # Most fall damage the Stomper takes themselves. 4.0 = two hearts.
     fall-damage-cap: 4.0
-    # How far the landing reaches, in blocks. The full fall damage lands on someone standing
-    # on the block you hit and tapers to nothing at this distance.
+    # How far the landing reaches, in blocks. Every victim in range takes their own hit,
+    # judged only by their own distance: full fall damage on the block you land on, fading to
+    # nothing at this distance. A crowd is not a discount — three people under you are hit
+    # three times. Victims' armour reduces what they take; the Stomper's own armour never
+    # weakens the hit.
     radius: 5.0
     # Most a crouching victim takes. 4.0 = two hearts.
     sneak-cap: 4.0
@@ -428,3 +597,24 @@ restart-on-reset: true
 # restart. The decision is made at boot rather than at shutdown, so the next start gets new
 # terrain however this run ends: a finished match, /stop, Ctrl+C, or a crash.
 fresh-world-on-restart: true
+
+# Read-only JSON API for the website (the Node app in http/). Serves /api/status,
+# /api/kits, /api/stats?player=<name> and /api/stats/top.
+web:
+  enabled: true
+  # Loopback on purpose: the Node app on the same machine is the audience. Only widen this if
+  # the site runs on a different host, and firewall the port if you do.
+  bind: 127.0.0.1
+  port: 8085
+
+worldgen:
+  # Give each rotated world a small datapack that raises the continent floor above sea level,
+  # so the map generates as land — swamps, forests, taigas, mountains, jungles, deserts,
+  # meadows — instead of being mostly ocean. Rivers and lakes still generate; open sea does
+  # not. Only newly GENERATED worlds are affected, so this rides the world rotation: the world
+  # currently running keeps whatever terrain it was born with.
+  no-oceans: true
+  # Extra mushrooms planted per swamp chunk as chunks load — attempts, not a quota: only
+  # shaded, valid spots take one, exactly where vanilla mushrooms survive. Soup is the healing
+  # economy and the map is centred on a swamp, so the swamp should feed it. 0 turns it off.
+  swamp-mushrooms-per-chunk: 6

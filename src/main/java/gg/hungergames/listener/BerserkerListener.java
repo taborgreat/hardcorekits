@@ -44,7 +44,7 @@ public final class BerserkerListener implements Listener {
             return;
         }
         Player killer = event.getEntity().getKiller();
-        if (killer == null || !kits.hasKit(killer, BerserkerKit.ID)) {
+        if (killer == null || !kits.canUseAbility(killer, BerserkerKit.ID)) {
             return;
         }
 

@@ -9,6 +9,7 @@ import org.bukkit.Sound;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.SmallFireball;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
@@ -46,8 +47,22 @@ public final class PyroListener implements Listener {
 
     // ---------------------------------------------------------------- the throw
 
-    @EventHandler(ignoreCancelled = true)
+    /**
+     * Deliberately not {@code ignoreCancelled}.
+     *
+     * <p>{@link PlayerInteractEvent#isCancelled()} is true whenever <em>either</em> result is
+     * DENY, and a right-click on air always carries {@code useInteractedBlock == DENY} because
+     * there is no block to interact with. So an air click arrives at the first listener already
+     * reporting cancelled, through nobody's doing, and {@code ignoreCancelled = true} silently
+     * skips every throw that is not aimed at a block — which is most of them.
+     *
+     * <p>What a genuine veto looks like is the item result, so that is what gets checked.
+     */
+    @EventHandler
     public void onInteract(PlayerInteractEvent event) {
+        if (event.useItemInHand() == Event.Result.DENY) {
+            return; // something really did deny the item, rather than there being no block
+        }
         Action action = event.getAction();
         if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) {
             return;
@@ -57,7 +72,7 @@ public final class PyroListener implements Listener {
             return;
         }
         Player player = event.getPlayer();
-        if (!game.state().isLive() || !kits.hasKit(player, PyroKit.ID)) {
+        if (!game.state().isLive() || !kits.canUseAbility(player, PyroKit.ID)) {
             return; // anyone else gets an ordinary fire charge
         }
 
@@ -89,7 +104,7 @@ public final class PyroListener implements Listener {
             return;
         }
         ProjectileSource shooter = fireball.getShooter();
-        if (!(shooter instanceof Player pyro) || !kits.hasKit(pyro, PyroKit.ID)) {
+        if (!(shooter instanceof Player pyro) || !kits.canUseAbility(pyro, PyroKit.ID)) {
             return; // a blaze's fireball is still just a blaze's fireball
         }
         if (!game.state().isLive()) {
@@ -97,6 +112,15 @@ public final class PyroListener implements Listener {
         }
 
         Location impact = fireball.getLocation();
+
+        // The bang. A real explosion with fire, TNT-shaped — the direct hit opens the crater,
+        // and the spread below sets everyone around it alight. Dropped loot survives it, the
+        // same game-wide rule that protects a Demoman's or a Tank's.
+        impact.getWorld().createExplosion(impact,
+                (float) game.config().pyroExplosionPower(),
+                true,
+                game.config().pyroBreaksBlocks());
+
         double radius = game.config().pyroIgniteRadius();
         int ticks = game.config().pyroBurnSeconds() * 20;
 

@@ -18,6 +18,19 @@ that's the only thing to install.
 ./gradlew runServer   # downloads Paper, boots a test server on localhost:25565
 ```
 
+./gradlew build     # whenever you've changed code
+sh tools/run-loop.sh
+
+A match ends by shutting the server down: everyone is kicked, the map is retired, and getting
+into the next game is a race. `tools/run-loop.sh` is what brings it back up, so one process can
+cycle games forever — it reinstalls the built jar, cleans up the map left behind by a crash,
+and honours `touch run/stop-loop.txt` to stop between games. POSIX sh, so Linux, macOS, or Git
+Bash on Windows.
+
+```bash
+tools/run-loop.sh --server-dir /srv/hg
+```
+
 To run it for real, drop the jar into a Paper server's `plugins/`. Everything tunable lives in
 `config.yml`; `/hgstart`, `/hgstate` and `/hgfake` exist for testing a match on your own, and
 `tools/bots` connects headless clients when you need bodies to hit.

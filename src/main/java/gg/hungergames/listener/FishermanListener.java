@@ -86,7 +86,7 @@ public final class FishermanListener implements Listener {
             return;
         }
         Player fisher = event.getPlayer();
-        if (!kits.hasKit(fisher, FishermanKit.ID) || victim.equals(fisher)) {
+        if (!kits.canUseAbility(fisher, FishermanKit.ID) || victim.equals(fisher)) {
             return;
         }
 
@@ -120,8 +120,18 @@ public final class FishermanListener implements Listener {
         reelableAt.put(victim.getUniqueId(),
                 now + game.config().fishermanCooldownSeconds() * 1000L);
 
+        // The hook itself is a hit: a sliver of damage, attributed, so connecting is
+        // unmistakable on both screens — the flash, the sound, and the combat-log clock all
+        // start here rather than on the landing.
+        double hit = game.config().fishermanHookDamage();
+        if (hit > 0.0D) {
+            victim.damage(hit, fisher);
+        }
+        fisher.playSound(fisher.getLocation(), Sound.ENTITY_FISHING_BOBBER_RETRIEVE, 1.0F, 1.4F);
+
         // Vanilla applies its own small tug as this event finishes resolving; land the real
-        // pull on the tick after, so ours is the velocity that survives.
+        // pull on the tick after, so ours is the velocity that survives — including over the
+        // knockback of the hook-hit above.
         plugin.getServer().getScheduler().runTask(plugin, () -> reel(fisher, victim));
     }
 

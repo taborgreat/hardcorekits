@@ -10,11 +10,19 @@ commands:
     description: Select your kit, or show the one you have.
     usage: /kit [name]
   kits:
-    description: List available kits.
-    usage: /kits
+    description: List available kits, one page at a time.
+    usage: /kits [page]
   hgstart:
     description: Force-start the countdown, bypassing the player threshold.
     usage: /hgstart
+    permission: hungergames.admin
+  hgquickstart:
+    description: Skip the countdown entirely and drop the match now.
+    usage: /hgquickstart
+    permission: hungergames.admin
+  hgskipinvuln:
+    description: End the invincibility grace period immediately.
+    usage: /hgskipinvuln
     permission: hungergames.admin
   hgendgame:
     description: Force the End Game now, skipping its warning countdown.

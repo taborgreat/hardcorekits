@@ -1,0 +1,127 @@
+/* One stylesheet for the whole site. Bedrock behind everything, one centered column,
+   dark panels for readability. Built to be left alone. */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #1a1a1a url("/bedrock.png") repeat;
+  background-size: 64px 64px;
+  image-rendering: pixelated;
+  color: #e8e8e8;
+  font: 21px/1.65 Georgia, "Times New Roman", serif;
+  text-align: center;
+}
+
+main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 16px 64px;
+}
+
+/* Headings in the pixel font; everything else stays a readable serif. */
+h1, h2 {
+  font-family: "Press Start 2P", "Courier New", monospace;
+  color: #ffffff;
+  text-shadow: 3px 3px 0 #000;
+  line-height: 1.5;
+}
+
+h1 {
+  font-size: 2.3rem;
+  margin: 24px 0 8px;
+  color: #ffd83d; /* the classic splash-text gold */
+}
+
+h2 {
+  font-size: 1.35rem;
+  margin: 36px 0 12px;
+}
+
+/* Every block of content sits on a dark panel so it reads over the bedrock. */
+p, table, form, .panel {
+  background: rgba(0, 0, 0, 0.66);
+  border: 2px solid #000;
+  border-radius: 4px;
+  padding: 16px 22px;
+  margin: 14px auto;
+  max-width: 780px;
+}
+
+a {
+  color: #7dff7d; /* Minecraft green */
+}
+
+a:hover {
+  color: #ffffff;
+}
+
+code {
+  background: #000;
+  color: #ffd83d;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+nav {
+  margin: 6px 0 26px;
+  font-family: "Press Start 2P", "Courier New", monospace;
+  font-size: 1rem;
+}
+
+nav a {
+  margin: 0 10px;
+  text-decoration: none;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th, td {
+  border: 1px solid #444;
+  padding: 10px 16px;
+}
+
+th {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffd83d;
+}
+
+tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+input, button {
+  font: inherit;
+  padding: 8px 14px;
+  border: 2px solid #000;
+  border-radius: 3px;
+}
+
+input {
+  background: #101010;
+  color: #fff;
+  width: 60%;
+  max-width: 320px;
+}
+
+button {
+  background: #3fa63f;
+  color: #fff;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #4fc44f;
+}
+
+/* The live tracker's first line gets a little weight of its own. */
+#tracker b {
+  color: #ffd83d;
+}

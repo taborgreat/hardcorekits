@@ -34,6 +34,7 @@ public final class AdminCommand implements CommandExecutor {
                         + (game.lobbyWatcherRunning() ? "" : "  [LOBBY WATCHER STOPPED]"));
                 Msg.info(sender, "Chunks shaped: " + plugin.worldShaper().chunksShaped()
                         + " | diamond ore stripped: " + plugin.worldShaper().diamondsStripped()
+                        + " | mushrooms planted: " + plugin.worldShaper().mushroomsPlanted()
                         + " | pending: " + plugin.worldShaper().pending());
                 Location feastSite = game.feast().site();
                 Msg.info(sender, "Feast site: " + (feastSite == null
@@ -44,6 +45,20 @@ public final class AdminCommand implements CommandExecutor {
                         + " (6000 = midday, held during pre-game)");
             }
             case "hgfake" -> handleFake(sender, args);
+            case "hgquickstart" -> {
+                if (game.quickStart()) {
+                    Msg.success(sender, "Skipping the countdown — dropping now.");
+                } else {
+                    Msg.error(sender, "A match is already underway (" + game.state() + ").");
+                }
+            }
+            case "hgskipinvuln" -> {
+                if (game.skipInvulnerability()) {
+                    Msg.success(sender, "Invincibility ended. PvP is live.");
+                } else {
+                    Msg.error(sender, "No grace period running (" + game.state() + ").");
+                }
+            }
             case "hgstart" -> {
                 if (game.state() != GameState.WAITING) {
                     Msg.error(sender, "Can only force-start from WAITING (currently "

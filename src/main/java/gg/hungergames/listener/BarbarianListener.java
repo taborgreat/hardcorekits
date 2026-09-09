@@ -11,6 +11,7 @@ import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerExpChangeEvent;
 import org.bukkit.inventory.ItemStack;
@@ -47,14 +48,6 @@ public final class BarbarianListener implements Listener {
     /** Player kills this match, per Barbarian — the bounty grows with it. */
     private final Map<UUID, Integer> kills = new HashMap<>();
 
-    /**
-     * Set while handing out a kill bounty.
-     *
-     * <p>The bounty is real XP, and granting XP can come back round as an exp-change event on
-     * some paths. Without this the bounty would be counted twice.
-     */
-    private boolean payingBounty;
-
     public BarbarianListener(GameManager game, KitRegistry kits) {
         this.game = game;
         this.kits = kits;
@@ -72,7 +65,7 @@ public final class BarbarianListener implements Listener {
     @EventHandler
     public void onExpChange(PlayerExpChangeEvent event) {
         Player player = event.getPlayer();
-        if (payingBounty || event.getAmount() <= 0
+        if (event.getAmount() <= 0
                 || !game.state().isLive() || !kits.hasKit(player, BarbarianKit.ID)) {
             return;
         }
@@ -95,17 +88,38 @@ public final class BarbarianListener implements Listener {
             return;
         }
 
-        // Real XP, so the Barbarian can also spend it at the feast enchanting table.
-        payingBounty = true;
-        try {
-            killer.giveExp(bounty);
-        } finally {
-            payingBounty = false;
-        }
+        // Counted, not handed over: the XP bar is the kill counter now, so paying the bounty
+        // in real XP would only scribble on it. Tyrfing keeps its own ledger regardless.
 
         killer.sendMessage(Component.text("Tyrfing drinks deep. Kill " + count
                 + " is worth " + bounty + " XP.", NamedTextColor.GOLD));
         gain(killer, bounty);
+    }
+
+    /**
+     * A mob is worth a fraction of a player, on the same ledger.
+     *
+     * <p>Seven mobs to a player kill is the exchange rate, which makes hunting a real way to
+     * grow the sword rather than a rounding error — a Barbarian who never finds a fight can
+     * still arrive at the feast holding iron. It stays the slow lane, because player kills
+     * escalate and mobs do not: by the fourth kill one player is worth two dozen mobs.
+     *
+     * <p>{@code PlayerDeathEvent} extends this one, so players are handed straight back to the
+     * escalating bounty rather than being paid twice.
+     */
+    @EventHandler
+    public void onMobKill(EntityDeathEvent event) {
+        if (event.getEntity() instanceof Player) {
+            return;
+        }
+        Player killer = event.getEntity().getKiller();
+        if (killer == null || !game.state().isLive() || !kits.hasKit(killer, BarbarianKit.ID)) {
+            return;
+        }
+        int bounty = game.config().barbarianMobKillXp();
+        if (bounty > 0) {
+            gain(killer, bounty);
+        }
     }
 
     // ---------------------------------------------------------------- levelling

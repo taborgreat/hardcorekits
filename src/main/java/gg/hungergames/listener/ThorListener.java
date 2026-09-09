@@ -1,8 +1,10 @@
 package gg.hungergames.listener;
 
+import gg.hungergames.HungerGames;
 import gg.hungergames.game.GameManager;
 import gg.hungergames.kit.KitRegistry;
 import gg.hungergames.kit.kits.ThorKit;
+import gg.hungergames.util.CooldownBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
@@ -47,6 +49,7 @@ public final class ThorListener implements Listener {
     /** Minimum upward component of the shove, so victims are lifted rather than slid. */
     private static final double MIN_LIFT = 0.4D;
 
+    private final HungerGames plugin;
     private final GameManager game;
     private final KitRegistry kits;
 
@@ -55,7 +58,8 @@ public final class ThorListener implements Listener {
     /** When a spent Thor may strike again. */
     private final Map<UUID, Long> readyAt = new HashMap<>();
 
-    public ThorListener(GameManager game, KitRegistry kits) {
+    public ThorListener(HungerGames plugin, GameManager game, KitRegistry kits) {
+        this.plugin = plugin;
         this.game = game;
         this.kits = kits;
     }
@@ -78,7 +82,7 @@ public final class ThorListener implements Listener {
         }
         Player player = event.getPlayer();
         if (player.getInventory().getItemInMainHand().getType() != ThorKit.HAMMER
-                || !kits.hasKit(player, ThorKit.ID)) {
+                || !kits.canUseAbility(player, ThorKit.ID)) {
             return;
         }
         if (onCooldown(player)) {
@@ -135,6 +139,8 @@ public final class ThorListener implements Listener {
             // Spent the last charge: this strike still lands, the next one waits.
             charges.remove(uuid);
             readyAt.put(uuid, now + (game.config().thorCooldownSeconds() * 1000L));
+            // The rest, drawn draining on the XP bar. The fill only — the level stays kills.
+            CooldownBar.show(plugin, game, player, game.config().thorCooldownSeconds());
         }
         return false;
     }

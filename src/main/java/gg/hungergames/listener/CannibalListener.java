@@ -47,7 +47,7 @@ public final class CannibalListener implements Listener {
         }
         Player attacker = attacker(event);
         if (attacker == null || attacker.equals(victim)
-                || !kits.hasKit(attacker, CannibalKit.ID)) {
+                || !kits.canUseAbility(attacker, CannibalKit.ID)) {
             return;
         }
 

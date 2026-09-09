@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kits — Minecraft Hunger Games</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main>
+  <h1>Kits</h1>
+  <nav><a href="/">Home</a><a href="/kits.html">Kits</a><a href="/stats.html">Stats</a></nav>
+
+  <p>Pick one in game with <code>/kit &lt;name&gt;</code> before the countdown ends.</p>
+  <div id="kits" class="panel">Loading…</div>
+
+  <script>
+    (async () => {
+      const el = document.getElementById('kits');
+      try {
+        const kits = await (await fetch('/api/kits')).json();
+        el.outerHTML = kits.map(k =>
+          '<p><b>' + k.name + '</b><br>' + k.description + '</p>').join('');
+      } catch {
+        el.textContent = 'Could not load the kit list.';
+      }
+    })();
+  </script>
+</main>
+</body>
+</html>
