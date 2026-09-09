@@ -1,2 +1,13 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# The wrapper scripts are run by their own platform's shell, so their line endings are not a
+# matter of taste: a CRLF gradlew is not executable on Linux or macOS.
+gradlew      text eol=lf
+*.sh         text eol=lf
+gradlew.bat  text eol=crlf
+*.bat        text eol=crlf
+
+# Never normalise binaries — the wrapper jar included.
+*.jar binary
+*.png binary

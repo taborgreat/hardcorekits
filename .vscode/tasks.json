@@ -1,0 +1,28 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build plugin",
+            "type": "shell",
+            "command": "./gradlew build",
+            "windows": { "command": ".\\gradlew.bat build" },
+            "group": { "kind": "build", "isDefault": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "run server",
+            "detail": "Builds, downloads Paper if needed, and boots the test server with the plugin installed.",
+            "type": "shell",
+            "command": "./gradlew runServer --console=plain",
+            "windows": { "command": ".\\gradlew.bat runServer --console=plain" },
+            "isBackground": true,
+            "group": "test",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "focus": true
+            }
+        }
+    ]
+}

@@ -1,0 +1,39 @@
+name: HungerGames
+version: '${version}'
+main: gg.hungergames.HungerGames
+api-version: '26.2'
+description: Command-driven Hunger Games on a single natural-terrain world.
+author: taborgreat
+
+commands:
+  kit:
+    description: Select your kit, or show the one you have.
+    usage: /kit [name]
+  kits:
+    description: List available kits.
+    usage: /kits
+  hgstart:
+    description: Force-start the countdown, bypassing the player threshold.
+    usage: /hgstart
+    permission: hungergames.admin
+  hgendgame:
+    description: Force the End Game now, skipping its warning countdown.
+    usage: /hgendgame
+    permission: hungergames.admin
+  hgreset:
+    description: Reset the game back to WAITING.
+    usage: /hgreset
+    permission: hungergames.admin
+  hgstate:
+    description: Print the current game state.
+    usage: /hgstate
+    permission: hungergames.admin
+  hgfake:
+    description: Add or kill stand-in tributes for solo testing.
+    usage: /hgfake add <n> | kill <n> | clear
+    permission: hungergames.admin
+
+permissions:
+  hungergames.admin:
+    description: Access to admin/testing commands, and exemption from lobby restrictions.
+    default: op

@@ -1,0 +1,430 @@
+# Hunger Games configuration.
+# Everything the game needs to know about the map lives here — no coordinates in code.
+
+# World the game runs in. There is no separate lobby world.
+# Leave this blank to use whatever world the server booted into — which is what you want with
+# fresh-world-on-restart below, since that hands the next boot a new world folder every time.
+world: ''
+
+# Map centre. Pre-game gathering point and the countdown teleport target.
+# Y is resolved automatically to the surface.
+center:
+  x: 0
+  z: 0
+  # If the configured centre lands in water, move it to the nearest inland biome instead.
+  # This does NOT make the world less watery — terrain height and sea level come from the
+  # noise generator, not from biomes, so no plugin setting can remove ocean. What it does is
+  # stop the 1000-block play area being centred on open sea, which is the part that matters
+  # since the whole match happens inside that box. For genuinely drier worldgen you need a
+  # datapack overriding minecraft:worldgen/noise_settings, or a hand-picked level-seed.
+  auto-land: true
+  # Prefer to centre the map on a swamp. Mushroom stew is the healing economy, so this puts
+  # soup within reach of the fighting rather than leaving it to whoever spawned near one.
+  # It cannot make the world contain more swamps — only put the play area on one.
+  prefer-swamp: true
+  # How far to look for that land. Costs nothing to raise — the biome search does not
+  # generate chunks.
+  search-radius: 6000
+
+# Players required before the countdown starts on its own.
+# To test solo use /hgstart, or /hgfake add <n> to pad the count. Do not drop this to 1 —
+# a single join then silently starts a match.
+min-players: 15
+
+# Server slots. Applied at startup, overriding whatever server.properties says — that file is
+# rewritten on shutdown for world rotation, so this is the one place worth changing.
+max-players: 120
+
+# The line shown under the server name in the multiplayer list. Same story as max-players:
+# server.properties is not the authority here.
+motd: 'Minecraft Hunger Games'
+
+# Seconds of countdown once the threshold is hit. Kits lock at the start of this.
+# Announced on the standard ladder: 30, 15, 10, then every second from 5 down.
+countdown-seconds: 30
+
+# Grace period after the drop. Player-dealt damage is blocked; environment damage is not.
+invulnerable-seconds: 120
+
+# The map boundary. There is no wall and no vanilla border — you just take heavy damage
+# outside it. Never shrinks.
+border:
+  # Full width of the play area, centred on `center`.
+  # 1000 => playable from -500 to +500 on both x and z.
+  size: 1000
+  # Damage outside is graduated, so the edge warns before it kills.
+  # The first stretch out is survivable: you notice, and you can walk back.
+  grace-distance: 10
+  # Damage per second inside that band. 1.0 = half a heart a second.
+  grace-damage-per-second: 1.0
+  # Past the band it climbs by this much per second, per further block — so 10 blocks beyond
+  # the grace is 21 damage a second, and nobody sets up camp out there.
+  ramp-per-block: 2.0
+  # Ticks between damage applications. 10 = twice a second. Rates above are per second and
+  # are scaled to this, so changing it alters the smoothness, not the lethality.
+  damage-interval-ticks: 10
+
+# At match start everyone is teleported to a random point within this radius of centre...
+scatter-radius: 50
+
+# ...at this many blocks above the surface, then falls in.
+drop-height: 20
+
+# Seconds a disconnected player has to rejoin before they forfeit.
+disconnect-grace-seconds: 60
+
+# Disconnecting more times than this in one game forfeits immediately, with no reconnect
+# window. Only counted once PvP is live — dropping out during invincibility does not count.
+max-disconnects: 3
+
+# Disconnecting within this many seconds of taking damage is treated as dying on the spot —
+# no reconnect window — and whoever last hit you gets the kill.
+combat-log-seconds: 3
+
+# Compass refuses to lock on to anyone closer than this, so it cannot be used at knife range.
+compass-min-distance: 25
+
+feast:
+  # Minutes into the match when the chests appear.
+  minutes: 22
+  # Minutes into the match when the circle is built (5 minutes of warning by default).
+  circle-minutes: 17
+  # Radius of the grass circle. 36 gives a 72-wide clearing.
+  # Cost scales with the square: this is ~4000 floor blocks and ~24000 headroom checks, all
+  # placed in one tick when the circle appears. If that hitches, this is the number to drop.
+  radius: 36
+  # Chests placed in a ring around the enchanting table.
+  chests: 12
+
+# The End Game. At sixty minutes the match ends whether the players have settled it or not:
+# everyone still alive is sealed into a bedrock box in the sky and lava is poured in from the
+# ceiling until there is nowhere left to stand. Nobody survives it, and that is the point — a
+# match nobody is still playing otherwise holds the world open and blocks the next game.
+endgame:
+  # Minutes into the match when the box is built and everyone is teleported into it.
+  minutes: 60
+  # Minutes into the match when the warnings start. Same countdown ladder as everything else:
+  # every whole minute, then 30/15/10, then every second from 5 down.
+  warning-minutes: 55
+  # Y of the box floor. Dropped automatically if the world is not tall enough for the ceiling.
+  height: 180
+  # Interior half-width. 10 gives a 21x21 floor; players arrive on a ring two blocks inside it.
+  radius: 10
+  # Interior height, floor to ceiling. Tall on purpose: the first layer of lava has thirty
+  # blocks to fall, so it arrives as a ceiling opening up rather than as a floor that was
+  # suddenly lava, and everyone gets to watch it come down.
+  wall-height: 30
+  # Seconds between arriving and the first lava landing, so the fight starts before the burning.
+  pour-delay-seconds: 40
+  # Seconds between each layer of lava, working down from the ceiling. There are wall-height
+  # layers, so this and the height together set when the box is guaranteed full: 40 + 30*5 =
+  # 190 seconds after everyone lands. That last moment kills whatever is still standing
+  # outright — fire immunity does not outlast the End Game — so it wants to stay minutes away,
+  # not tens of minutes. The room turns lethal long before then: the first layer alone pours
+  # down every column and floods the floor.
+  pour-interval-seconds: 5
+  # Seconds of immunity on arrival, so nobody is killed mid-teleport before they can react.
+  arrival-immunity-seconds: 3
+
+# Combat is rolled back to 1.8 as far as the server side can take it. The attack-speed cap is
+# already gone (the recharge is made instant when a player is prepared), and these cover the
+# rest of what 1.9 changed and people still fight around.
+combat:
+  # 1.9 sweep attacks. Off, so a swing hits what you aimed at and nothing else.
+  disable-sweep: true
+  # 1.9 added "not sprinting" to the critical-hit test, which killed the sprint-jump crit.
+  sprint-crits: true
+  # 1.9 put a cooldown on ender pearls. 1.8 did not.
+  no-pearl-cooldown: true
+  # Shields are a 1.9 item: the recipe is removed and one cannot be raised.
+  disable-shields: true
+  # Seconds between natural heals — the 1.8 rate. 1.9 heals about a heart a second off
+  # saturation, which makes food better than soup. 0 leaves modern regeneration alone.
+  regen-interval-seconds: 4
+  knockback:
+    # 1.8 melee knockback. false keeps whatever the current version does.
+    #
+    # OFF by default. The hand-rolled version shipped inverted — the push pointed from the
+    # victim towards the attacker instead of away, and the sprint bonus ran opposite the
+    # attacker's facing — which read in game as hits landing in the wrong direction and far too
+    # hard. The signs are fixed now, but vanilla knockback is the known-good baseline and this
+    # stays off until someone has actually fought with it on and is happy.
+    enabled: false
+    # Straight-line push away from the attacker.
+    horizontal: 0.4
+    # Lift. 1.9 only lifts a victim standing on the ground; 1.8 lifted them every hit, which
+    # is most of why combos feel different.
+    vertical: 0.4
+    vertical-limit: 0.4
+    # Added per knockback level along the attacker's facing, where sprinting is worth a level.
+    extra-horizontal: 0.5
+    extra-vertical: 0.1
+
+kits:
+  barbarian:
+    # Tyrfing tracks XP *earned*, never the XP bar being carried — so spending levels at the
+    # feast enchanting table cannot cost a Barbarian their edge.
+    # XP the first kill is worth, on top of whatever the corpse drops.
+    kill-xp: 25
+    # ...and every kill after the first is worth this much more than the last: 25, 50, 75, 100.
+    # Kills are the fast lane, not the only one — mobs, ore and bottles all feed the sword.
+    kill-xp-step: 25
+    # The ladder, cheapest rung first. `xp` is the running total of earned XP that buys the
+    # rung, `material` is any sword, `sharpness` is optional. Reaching a rung reforges the
+    # sword where it sits. Defaults land roughly one rung per kill.
+    tiers:
+      - xp: 0
+        material: WOODEN_SWORD
+      - xp: 20
+        material: STONE_SWORD
+      - xp: 60
+        material: IRON_SWORD
+      - xp: 120
+        material: DIAMOND_SWORD
+      - xp: 200
+        material: DIAMOND_SWORD
+        sharpness: 1
+      - xp: 300
+        material: DIAMOND_SWORD
+        sharpness: 2
+      - xp: 450
+        material: DIAMOND_SWORD
+        sharpness: 3
+  digger:
+    # Dragon eggs handed out at the start. Each one is one hole and then it is gone.
+    eggs: 6
+    # Ticks between placing the egg and the floor disappearing. 30 = a second and a half:
+    # long enough that the egg is a fair warning, short enough to catch a chaser.
+    fuse-ticks: 30
+    # Half-width of the shaft. 2 gives the classic 5x5 footprint.
+    radius: 2
+    # How far down it goes. Deep enough that climbing out needs something to build with.
+    depth: 8
+  spy:
+    # How close another player has to get before your compass warns you about them, in blocks.
+    # Each person is announced once and stays quiet until they have properly left again.
+    alert-radius: 40.0
+    # How far you can read a player's kit by looking at them. Line of sight is required, and
+    # players outside the server's view distance are not loaded for you at all — so this is
+    # effectively "as far as you can actually see".
+    look-range: 96.0
+    # Ticks between radar sweeps: both the proximity warning and the look-at readout. 10 =
+    # twice a second. The sweep only touches players who picked the kit.
+    sweep-ticks: 10
+  poseidon:
+    # Melee damage multiplier while standing in water — the classic "160% strength", a shade
+    # stronger than a Strength I potion. Only the attacker's own footing counts, and only for
+    # swings: arrows are ordinary wherever they are fired from.
+    water-damage-multiplier: 1.6
+    # Seconds of Slowness on leaving the water. Getting back in cancels it early, so the
+    # penalty only ever applies on land.
+    land-slowness-seconds: 5
+    # 1 = Slowness I.
+    land-slowness-level: 1
+  fisherman:
+    # Furthest the reel will pull from. A vanilla cast reaches about 33 blocks, so this is
+    # effectively "as far as you can throw it" — past it the line snaps instead.
+    max-distance: 32.0
+    # Blocks the reel arcs above the victim before dropping them on you. Long pulls arc higher
+    # than this on their own, and pulling someone up to you adds the climb. Flight time is
+    # solved from the arc, so lower is a flatter, faster snap that terrain blocks more often.
+    arc-height: 1.2
+    # Seconds before the same victim can be reeled again, by anyone. Stops a Fisherman
+    # juggling one player in the air forever; 0 restores the classic free-for-all.
+    cooldown-seconds: 2
+  demoman:
+    # Blast strength of a mine. Vanilla TNT is 4.0.
+    explosion-power: 4.0
+    # Whether the blast craters the terrain, like real TNT.
+    break-blocks: true
+  turtle:
+    # Caps, not fixed amounts — a hit weaker than this still only does what it would have.
+    # Explosions and the border ignore the shell entirely; that is deliberate, not tunable.
+    # 2.0 = one heart.
+    crouch-damage: 2.0
+    # ...and with a shield raised as well. 1.0 = half a heart.
+    blocking-damage: 1.0
+  tank:
+    # Blast set off by a kill. Vanilla TNT is 4.0, so this is the "small" one the kit promises.
+    explosion-power: 3.0
+    # Off by default: with it on, every corpse craters the ground it fell on and the map ends
+    # up pocked with holes. The loot is protected either way — it is spawned after the blast.
+    break-blocks: false
+  kaya:
+    # Traps you start with. There is no cooldown — the limit is dirt and seeds, since a
+    # crafting table turns those into more grass.
+    starting-blocks: 8
+  hermit:
+    # Only used when the map has no swamp, jungle or desert at all. The biome search always
+    # prefers the furthest match inside the border over this fallback.
+    min-distance: 300
+  thor:
+    # Lightning always lands on the highest block of the clicked column — that is the
+    # anti-tower mechanic, not a setting. Above this Y the strike also leaves burning
+    # netherrack behind and shoves harder.
+    high-strike-y: 80
+    # Radius of the shove around the strike.
+    radius: 4.0
+    # Shove strength above and below the height threshold.
+    high-power: 1.2
+    low-power: 0.7
+    # Striking your own netherrack again detonates it, at this fraction of TNT (4.0).
+    netherrack-tnt-fraction: 0.5
+    # Charges rather than a per-use timer: strike this many times in a burst, then rest.
+    # That keeps the kit's answer to a tower or a rush immediate without it being a hose.
+    uses: 3
+    # Seconds of rest once those are spent. Trying to strike during it shows the time left.
+    cooldown-seconds: 5
+  copycat:
+    # Whether taking someone's kit also hands over its starting equipment. On by default:
+    # several kits are nothing but their items, so a Demoman or Beastmaster copied without
+    # them would be an empty prize. Turn off to copy abilities only.
+    grant-equipment: true
+  pyro:
+    # How hard a charge is thrown. The fireball is a blaze's, so this is the only thing
+    # separating a lob over a wall from a shot across the feast.
+    fireball-speed: 1.2
+    # Blocks around the impact that catch. The direct hit is vanilla's and lands regardless;
+    # this is the spread that makes a charge worth throwing at a group rather than a person.
+    ignite-radius: 3.0
+    # Seconds everything in that radius burns. The thrower is always left out of it.
+    burn-seconds: 5
+  hulk:
+    # Push along the line of sight when the Hulk lets go. 1.6 clears a good gap; raise it and
+    # the throw starts reading as a launch rather than a shove.
+    throw-power: 1.6
+    # Upward part of the throw, so the victim arcs instead of skidding along the ground. This
+    # is also what makes the fall damage on the far end worth anything.
+    throw-lift: 0.6
+    # Seconds after a throw before the same Hulk can pick someone up again. Without it a Hulk
+    # can re-grab the instant they land and nobody ever touches the ground.
+    cooldown-seconds: 5
+  cannibal:
+    # Drumsticks gained per hit landed on another player. Hits on mobs deliberately give
+    # nothing — feeding off a cow would make the kit's whole hunt-people premise optional.
+    food-per-hit: 2
+    # Saturation gained alongside it. Saturation is what stops the bar draining again, so
+    # without some of this the food would leak straight back out.
+    saturation-per-hit: 1.0
+    # The Hunger left on whoever was hit. 30 seconds of Hunger I is exactly what a piece of
+    # rotten flesh gives, which is the effect the kit is named after.
+    hunger-seconds: 30
+    hunger-level: 1
+  berserker:
+    # Blood Lust also blocks jumping for the same duration — that is the cost, not a setting.
+    mob-kill:
+      # 1 = Strength I.
+      strength-level: 1
+      seconds: 10
+    player-kill:
+      strength-level: 2
+      seconds: 15
+  anchor:
+    # Blocks walked between iron footsteps. Lower is louder/more frequent.
+    step-sound-distance: 2.5
+    # How far the footstep carries. 1.0 is a normal-range sound.
+    step-sound-volume: 1.0
+  endermage:
+    # Horizontal reach of the portal. Height is ignored, so anyone in the portal's column is
+    # dragged in no matter how far above or below they are — that is the anti-camping tool.
+    radius: 2.0
+    # Grace given to the Endermage and everyone dragged, so nobody arrives mid-swing.
+    immunity-seconds: 5
+    # Seconds before the portal returns to the inventory. Only one can be in play at a time.
+    cooldown-seconds: 30
+  launcher:
+    # Sponges in the starting kit.
+    sponges: 20
+    # Upward kick per sponge in the stack. A vanilla jump is about 0.42.
+    power: 0.7
+    # Sponges past this one stop adding height, so a tower of them is not a rocket.
+    max-stack: 4
+    # Sideways push when the pad is lopsided. An even pad throws straight up regardless.
+    sideways-power: 0.6
+    # Seconds a launched player is owed a free landing.
+    fall-immunity-seconds: 15
+  jellyfish:
+    # Seconds the conjured water lasts. Long enough to break a fall or douse a fire, short
+    # enough that it never becomes terrain.
+    duration-seconds: 3
+  cookiemonster:
+    # Chance that breaking a patch of grass drops a cookie.
+    grass-drop-chance: 0.2
+    # Hunger one cookie restores. 2 is one drumstick, and this is spent first.
+    food: 2
+    # Health one cookie restores once hunger is full. 2.0 is one heart.
+    heal: 2.0
+    # Speed handed out when both bars are already full.
+    speed-seconds: 5
+    speed-level: 2
+  timelord:
+    # Blocks around the caster caught by the freeze.
+    radius: 6.0
+    # Seconds a frozen player stays rooted. They can still swing, and a hit releases them.
+    duration-seconds: 10
+    # Extra seconds before the watch can be cast again, on top of the freeze itself.
+    cooldown-seconds: 30
+  kangaroo:
+    # Upward kick of the rocket. A vanilla jump is about 0.42; 1.0 clears most terrain.
+    jump-power: 1.0
+    # Push along your line of sight, so the hop travels rather than only rising.
+    forward-power: 0.5
+    # Seconds between hops. Drawn on the rocket itself as the vanilla cooldown sweep.
+    cooldown-seconds: 5
+    # Seconds of fall-damage immunity earned by landing a hit on another player.
+    fall-immunity-seconds: 8
+  jackhammer:
+    # The column always runs upwards from the block broken — there is no aiming and no
+    # downward mode, so nothing here selects a direction.
+    # Columns the hammer can drill before it needs a rest.
+    uses: 5
+    # Seconds of cooldown once those are spent.
+    cooldown-seconds: 30
+    # Ticks between blocks in the column. 2 = ten blocks a second, which is fast enough to
+    # matter in a fight and slow enough to watch coming.
+    interval-ticks: 2
+    # Whether the column drops its blocks, like ordinary mining.
+    drop-blocks: true
+  stomper:
+    # Most fall damage the Stomper takes themselves. 4.0 = two hearts.
+    fall-damage-cap: 4.0
+    # How far the landing reaches, in blocks. The full fall damage lands on someone standing
+    # on the block you hit and tapers to nothing at this distance.
+    radius: 5.0
+    # Most a crouching victim takes. 4.0 = two hearts.
+    sneak-cap: 4.0
+
+# Soup. Drinking is instant — no eat animation — and heals before it feeds.
+soup:
+  # Health restored while below full. 7.0 = three and a half hearts. Overflow is lost.
+  heal: 7.0
+  # Hunger restored instead, once health is already full. Vanilla stew is 6.
+  food: 6
+  # Saturation restored alongside the hunger. Capped at the hunger bar, as in vanilla.
+  saturation: 7.2
+
+# The winner's send-off, run in the ENDING state: they are made invulnerable and lifted onto a
+# floating cake platform with fireworks going off around it, then everyone is kicked with the
+# congratulations line and the server closes.
+win:
+  # Blocks above the winner the cake platform is built.
+  platform-height: 25
+  # How many times "<name> wins!" is repeated before the close.
+  chants: 5
+  # Seconds between each of those calls. The line wants room around it.
+  chant-interval-seconds: 2
+  # Seconds the winner is left on the podium after the last call, before everyone is kicked.
+  close-delay-seconds: 5
+  # Ticks between firework launches. 10 = twice a second.
+  firework-interval-ticks: 10
+
+# true  -> shut the JVM down after a win (clean slate, needs a wrapper script to relaunch)
+# false -> in-place reset back to WAITING (faster for testing; keeps the same map)
+restart-on-reset: true
+
+# Every start retires the map it booted into: at enable the plugin points server.properties at
+# a fresh world name, blanks the seed, and deletes the world the last run left behind. A running
+# server cannot delete the world it is standing in, which is why the work is split across the
+# restart. The decision is made at boot rather than at shutdown, so the next start gets new
+# terrain however this run ends: a finished match, /stop, Ctrl+C, or a crash.
+fresh-world-on-restart: true

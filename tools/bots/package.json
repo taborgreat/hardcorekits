@@ -1,0 +1,13 @@
+{
+  "name": "hg-test-bots",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Headless test clients for the Hunger Games dev server.",
+  "type": "commonjs",
+  "scripts": {
+    "bots": "node bots.js"
+  },
+  "dependencies": {
+    "mineflayer": "^4.34.0"
+  }
+}
