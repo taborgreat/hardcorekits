@@ -1,7 +1,7 @@
 'use strict'
 
 /**
- * Headless test clients for the Hunger Games dev server.
+ * Headless test clients for the Hardcore Games dev server.
  *
  * These are REAL players from the server's point of view — they have bodies, so unlike
  * `/hgfake` counters they can be tracked with a compass, hit, and killed. Use them to test

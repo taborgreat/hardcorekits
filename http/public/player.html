@@ -3,19 +3,28 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Player — Minecraft Hunger Games</title>
+  <title>Player — Minecraft Hardcore Games</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <main>
-  <nav><a href="/">Home</a><a href="/kits.html">Kits</a><a href="/stats.html">Stats</a></nav>
+  <nav><a href="/">Home</a><a href="/stats.html">Stats</a><a href="/kits.html">Kits</a><a href="/faq.html">FAQ</a></nav>
   <div id="page" class="panel">Loading…</div>
 
   <script>
     const avg = (kills, games) => games ? (kills / games).toFixed(2) : '0.00';
     const pct = (wins, games) => games ? Math.round(100 * wins / games) + '%' : '0%';
+
+    function lastOnline(p, onlineNames) {
+      if (onlineNames.includes(p.name)) return '<span class="playing">Playing now</span>';
+      if (!p.lastSeen) return 'unknown';
+      const hours = Math.floor((Date.now() - p.lastSeen) / 3600000);
+      if (hours < 1) return 'less than an hour ago';
+      if (hours < 24) return hours + 'h ago';
+      return Math.floor(hours / 24) + 'd ago';
+    }
 
     (async () => {
       const el = document.getElementById('page');
@@ -24,14 +33,19 @@
         el.innerHTML = 'No player given. <a href="/stats.html">Search for one.</a>';
         return;
       }
-      document.title = name + ' — Minecraft Hunger Games';
+      document.title = name + ' — Minecraft Hardcore Games';
 
       const res = await fetch('/api/stats?player=' + encodeURIComponent(name));
       if (!res.ok) {
-        el.textContent = 'No stats for "' + name + '" — they may not have played a match yet.';
+        el.textContent = 'No stats for "' + name + '". They may not have played a match yet.';
         return;
       }
       const p = await res.json();
+
+      let onlineNames = [];
+      try {
+        onlineNames = (await (await fetch('/api/status')).json()).onlineNames || [];
+      } catch {}
 
       let names = {};
       try {
@@ -39,10 +53,26 @@
       } catch {}
       names.none = 'None';
 
-      let html = '<h1>' + p.name + '</h1>';
-      html += '<p><b>' + p.wins + '</b> wins · <b>' + p.kills + '</b> kills · <b>'
-            + p.games + '</b> games · ' + avg(p.kills, p.games) + ' kills/game · '
-            + pct(p.wins, p.games) + ' win rate</p>';
+      const statRow = (label, value) =>
+          '<div class="stat-row"><span>' + label + '</span><b>' + value + '</b></div>';
+
+      let html = '<div class="player-header">';
+      html += '<div class="player-identity">'
+            + '<img class="skin" src="https://mc-heads.net/body/' + encodeURIComponent(p.name)
+            + '/140" alt="" onerror="this.style.display=\'none\'">'
+            + '<div class="player-name">' + p.name + '</div>'
+            + '</div>';
+      html += '<div class="player-totals">'
+            + statRow('Wins', p.wins)
+            + statRow('Kills', p.kills)
+            + statRow('Games', p.games)
+            + statRow('Kills/game', avg(p.kills, p.games))
+            + statRow('Win rate', pct(p.wins, p.games))
+            + statRow('Win streak', p.streak || 0)
+            + statRow('Longest streak', p.bestStreak || 0)
+            + statRow('Last online', lastOnline(p, onlineNames))
+            + '</div>';
+      html += '</div>';
 
       const kits = Object.entries(p.kits || {})
           .sort((a, b) => b[1].games - a[1].games || b[1].kills - a[1].kills);
@@ -57,7 +87,7 @@
         }
         html += '</table>';
       } else {
-        html += '<p>No per-kit history yet — it starts recording from their next match.</p>';
+        html += '<p>No per-kit history yet. It starts recording from their next match.</p>';
       }
       el.outerHTML = '<div>' + html + '</div>';
     })();

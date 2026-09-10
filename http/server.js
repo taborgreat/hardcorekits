@@ -92,11 +92,16 @@ function json(res, code, body) {
 function serveStatic(pathname, res) {
   if (pathname === '/') pathname = '/index.html';
   const file = path.join(PUBLIC_DIR, path.normalize(pathname));
-  // normalize plus this check keeps requests inside public/ — no ../ escapes.
-  if (!file.startsWith(PUBLIC_DIR) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
+  // Resolved path must sit strictly INSIDE public/ — the separator matters, or a sibling
+  // directory that merely starts with the same name ("public-backup") would pass.
+  if (!file.startsWith(PUBLIC_DIR + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     return res.end('not found');
   }
-  res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream' });
+  res.writeHead(200, {
+    'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream',
+    // Pages revalidate quickly; the reverse proxy can layer more on top.
+    'Cache-Control': path.extname(file) === '.html' ? 'no-cache' : 'public, max-age=300',
+  });
   fs.createReadStream(file).pipe(res);
 }

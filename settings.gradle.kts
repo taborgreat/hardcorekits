@@ -1,1 +1,1 @@
-rootProject.name = "hungergames"
+rootProject.name = "hardcoregames"

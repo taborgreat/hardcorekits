@@ -121,7 +121,136 @@ button:hover {
   background: #4fc44f;
 }
 
-/* The live tracker's first line gets a little weight of its own. */
+/* The live tracker wears the game's state: green and glowing while joinable, dimmed
+   while a match has the server to itself. */
 #tracker b {
   color: #ffd83d;
 }
+
+/* The status panel keeps a solid near-black ground in every state, so it always stands
+   out against the bedrock — only the accents change with the game. */
+.live {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.live-join {
+  border-color: #3fa63f;
+  box-shadow: 0 0 14px rgba(80, 220, 80, 0.45);
+}
+
+.live-join b {
+  color: #7dff7d;
+}
+
+.live-busy {
+  border-color: #222;
+  color: #a8a8a8;
+}
+
+.live-busy b {
+  color: #c8c8c8;
+}
+
+/* Player page: identity on the left, the numbers stacked on the right. */
+.player-header {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  align-items: stretch;
+  flex-wrap: wrap;
+  text-align: left;
+}
+
+.player-identity {
+  background: rgba(0, 0, 0, 0.66);
+  border: 2px solid #000;
+  border-radius: 4px;
+  padding: 18px 26px;
+  text-align: center;
+}
+
+.player-identity .skin {
+  image-rendering: auto;
+  margin-bottom: 10px;
+}
+
+.player-name {
+  font-family: "Press Start 2P", "Courier New", monospace;
+  color: #ffd83d;
+  font-size: 1.1rem;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.player-totals {
+  background: rgba(0, 0, 0, 0.66);
+  border: 2px solid #000;
+  border-radius: 4px;
+  padding: 14px 22px;
+  min-width: 300px;
+  align-self: center;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stat-row:last-child {
+  border-bottom: none;
+}
+
+.stat-row b {
+  color: #ffd83d;
+}
+
+.playing {
+  color: #7dff7d;
+  font-weight: bold;
+}
+
+/* Kit cards: each kit its own tile, name up top, breathing room between. */
+.kit-card {
+  background: rgba(0, 0, 0, 0.72);
+  border: 2px solid #000;
+  border-left: 4px solid #3fa63f;
+  border-radius: 4px;
+  padding: 14px 20px;
+  margin: 14px auto;
+  max-width: 720px;
+  text-align: left;
+}
+
+.kit-name {
+  font-family: "Press Start 2P", "Courier New", monospace;
+  font-size: 0.85rem;
+  color: #ffd83d;
+  text-shadow: 2px 2px 0 #000;
+  margin-bottom: 8px;
+}
+
+.kit-desc {
+  color: #d8d8d8;
+}
+
+/* FAQ: the question in small pixel gold above its answer, answers left-aligned to read. */
+.faq {
+  text-align: left;
+}
+
+.faq-q {
+  display: block;
+  font-family: "Press Start 2P", "Courier New", monospace;
+  font-size: 0.8rem;
+  color: #ffd83d;
+  text-shadow: 2px 2px 0 #000;
+  margin-bottom: 10px;
+  line-height: 1.6;
+}
+
+/* The podium: gold, silver, bronze; everyone else in plain white. */
+.rank-1 td, .rank-1 a { color: #ffd83d; font-weight: bold; }
+.rank-2 td, .rank-2 a { color: #cfcfcf; font-weight: bold; }
+.rank-3 td, .rank-3 a { color: #cd8a4f; font-weight: bold; }

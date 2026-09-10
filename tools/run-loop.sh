@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Keeps one Hunger Games server cycling: boot, play, close, boot again on a fresh map.
+# Keeps one Hardcore Games server cycling: boot, play, close, boot again on a fresh map.
 #
 # The plugin ends every match by shutting the server down. That is deliberate -- it kicks
 # everyone, so getting into the next game is a race rather than a thing the last winner is
@@ -38,8 +38,8 @@ script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
 server_dir="$script_dir/../run"
 jar="paper.jar"
-plugin_jar="$script_dir/../build/libs/hungergames-0.1.0.jar"
-plugin_name="HungerGames.jar"
+plugin_jar="$script_dir/../build/libs/hardcoregames-0.1.0.jar"
+plugin_name="HardcoreGames.jar"
 java_bin="${JAVA:-java}"
 jvm_args="-Xmx2G"
 restart_delay=3
@@ -66,8 +66,8 @@ log() {
 
 server_dir=$(CDPATH= cd -- "$server_dir" && pwd)
 properties="$server_dir/server.properties"
-plugin_config="$server_dir/plugins/HungerGames/config.yml"
-marker="$server_dir/plugins/HungerGames/retired-world.txt"
+plugin_config="$server_dir/plugins/HardcoreGames/config.yml"
+marker="$server_dir/plugins/HardcoreGames/retired-world.txt"
 stop_file="$server_dir/stop-loop.txt"
 
 [ -f "$server_dir/$jar" ] || {
@@ -125,6 +125,8 @@ while :; do
         break
     fi
 
+    # The rebrand left a legacy jar name behind; loading both would double every command.
+    rm -f "$server_dir/plugins/HungerGames.jar"
     if [ -f "$plugin_jar" ]; then
         cp -f "$plugin_jar" "$server_dir/plugins/$plugin_name"
         log "installed $(basename "$plugin_jar")"

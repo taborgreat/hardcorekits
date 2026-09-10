@@ -1,8 +1,8 @@
-name: HungerGames
+name: HardcoreGames
 version: '${version}'
-main: gg.hungergames.HungerGames
+main: com.hardcorekits.HardcoreGames
 api-version: '26.2'
-description: Command-driven Hunger Games on a single natural-terrain world.
+description: Command-driven Hardcore Games on a single natural-terrain world.
 author: taborgreat
 
 commands:
@@ -12,36 +12,46 @@ commands:
   kits:
     description: List available kits, one page at a time.
     usage: /kits [page]
-  hgstart:
-    description: Force-start the countdown, bypassing the player threshold.
-    usage: /hgstart
-    permission: hungergames.admin
-  hgquickstart:
-    description: Skip the countdown entirely and drop the match now.
-    usage: /hgquickstart
-    permission: hungergames.admin
-  hgskipinvuln:
-    description: End the invincibility grace period immediately.
-    usage: /hgskipinvuln
-    permission: hungergames.admin
-  hgendgame:
-    description: Force the End Game now, skipping its warning countdown.
-    usage: /hgendgame
-    permission: hungergames.admin
-  hgreset:
-    description: Reset the game back to WAITING.
-    usage: /hgreset
-    permission: hungergames.admin
-  hgstate:
-    description: Print the current game state.
-    usage: /hgstate
-    permission: hungergames.admin
-  hgfake:
-    description: Add or kill stand-in tributes for solo testing.
-    usage: /hgfake add <n> | kill <n> | clear
-    permission: hungergames.admin
+  help:
+    description: How the game and its commands work.
+    usage: /help
+  stats:
+    description: Lifetime stats for yourself or another player.
+    usage: /stats [player]
+  kills:
+    description: Your kills this match.
+    usage: /kills
+  msg:
+    description: Whisper another player privately.
+    usage: /msg <player> <message>
+    aliases: [tell, whisper, w]
+  feast:
+    description: Where the feast is, once it has appeared.
+    usage: /feast
+  game:
+    description: Match time and players remaining.
+    usage: /game
+  mod:
+    description: Toggle mod mode — invisible, flying, outside the game. Staff only.
+    usage: /mod
+  mods:
+    description: List staff, or appoint and dismiss roles below your own. Owners are ops.
+    usage: /mods | mod <player> | trainee <player> | remove <player>
+  ban:
+    description: Swing the ban hammer (mods and owner), or propose a ban (trainees).
+    usage: /ban <player> <reason...>
+  pending:
+    description: Open ban proposals, and every ban with who swung and why.
+    usage: /pending
+  propose:
+    description: File a numbered ban proposal, or rule on one (mods and owner).
+    usage: /propose ban <player> <reason...> | approve <id> | deny <id>
+  hg:
+    description: Admin control surface for the game loop.
+    usage: /hg state | start | quickstart | skipinvuln | endgame | reset | fake
+    permission: hardcoregames.admin
 
 permissions:
-  hungergames.admin:
+  hardcoregames.admin:
     description: Access to admin/testing commands, and exemption from lobby restrictions.
     default: op

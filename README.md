@@ -1,41 +1,41 @@
-# mc-hungergames
+# Hardcore Games
 
-A Minecraft Server built off the Paper plugin that runs classic MCPVP-style Hunger Games: one natural world, no lobby, no
-GUI, everything driven by commands. Players pick a kit with `/kit`, get dropped near the
-middle of a 1000x1000 map, and the last one standing wins.
+The Paper plugin behind [hardcorekits.com](https://hardcorekits.com) — classic MCPVP-style
+Hardcore Games. One natural world, no lobby, no GUI. Pick a kit with `/kit`, drop near the
+middle of a 1000x1000 map, last one standing wins.
 
-It's built after the old mc-hg.com servers, so combat is pre-1.8 and mushroom soup is the heal
-fights come down to how fast you click through a stack of bowls, not how well you time a
-cooldown. There's a long list of kits with real abilities rather than just loadouts, and a
-feast drops in mid-match holding the only diamond gear on the map, which pulls whoever is
-left back into one place. Bedrock at y=0. No Nether or The End. The way it should be.
+Combat is pre-1.8 and mushroom soup is the heal, so fights come down to how fast you click
+through a stack of bowls. Kits are real abilities, not loadouts. A feast drops mid-match
+with the only diamond gear on the map. No Nether, no End.
 
-Needs JDK 25 as Paper 26.2 won't run on anything older. Gradle comes with the wrapper, so
-that's the only thing to install.
+## Running it
 
-```bash
-./gradlew build       # -> build/libs/hungergames-0.1.0.jar
-./gradlew runServer   # downloads Paper, boots a test server on localhost:25565
-```
-
-./gradlew build     # whenever you've changed code
-sh tools/run-loop.sh
-
-A match ends by shutting the server down: everyone is kicked, the map is retired, and getting
-into the next game is a race. `tools/run-loop.sh` is what brings it back up, so one process can
-cycle games forever — it reinstalls the built jar, cleans up the map left behind by a crash,
-and honours `touch run/stop-loop.txt` to stop between games. POSIX sh, so Linux, macOS, or Git
-Bash on Windows.
+Needs JDK 25 (Paper 26.2 won't run on older). Gradle comes with the wrapper.
 
 ```bash
-tools/run-loop.sh --server-dir /srv/hg
+./gradlew build       # -> build/libs/hardcoregames-0.1.0.jar
+./gradlew runServer   # boots a test server on localhost:25565
 ```
 
-To run it for real, drop the jar into a Paper server's `plugins/`. Everything tunable lives in
-`config.yml`; `/hgstart`, `/hgstate` and `/hgfake` exist for testing a match on your own, and
-`tools/bots` connects headless clients when you need bodies to hit.
+A match ends by shutting the server down: everyone is kicked, the map is retired, and the
+next game gets a fresh world. `tools/run-loop.sh` cycles that forever — it reinstalls the
+built jar between games and stops when you `touch run/stop-loop.txt`.
 
-Two things to know. Don't rebuild while `runServer` is up — it loads the jar straight out of
-`build/libs`, and swapping it mid-flight throws `NoClassDefFoundError` that looks like a plugin
-bug but isn't. And `runServer` opens a JDWP debug port on 5005 on every interface, so firewall
-it or bind it to localhost before running this anywhere public.
+For a real server, drop the jar into `plugins/`. Everything tunable is in `config.yml`.
+`/hg start`, `/hg state` and `/hg fake` let you test a match alone; `tools/bots` connects
+headless clients when you need bodies to hit. The site in `http/` is a dependency-free Node
+app that polls the plugin's local stats API.
+
+## Hosting
+
+Ports: 25565/tcp Java, 19132/udp Bedrock (Geyser), 8080/tcp website (reverse-proxy 80/443
+onto it). The plugin's stats API on 8085 binds loopback and should stay that way.
+
+Bedrock needs Geyser + Floodgate jars in the server's `plugins/` — they're gitignored, so
+grab them from download.geysermc.org on a new machine and set `auth-type: floodgate` in
+Geyser's config. Owners are ops: `/op` from the console, everything else is delegated
+in-game through `/mods`.
+
+Two gotchas: don't rebuild while `runServer` is up (it loads the jar straight out of
+`build/libs`, and swapping it mid-flight throws `NoClassDefFoundError`), and `runServer`
+opens a JDWP debug port on 5005, so firewall it anywhere public.

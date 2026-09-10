@@ -1,4 +1,4 @@
-# Hunger Games configuration.
+# Hardcore Games configuration.
 # Everything the game needs to know about the map lives here — no coordinates in code.
 
 # World the game runs in. There is no separate lobby world.
@@ -25,7 +25,7 @@ center:
 # Players required before the countdown starts on its own — and required to KEEP counting:
 # dropping below this mid-countdown cancels the start. 2 is the launch posture (you and one
 # opponent make a match); raise it as the server grows. Do not drop this to 1 — a single
-# join then silently starts a match. To test solo use /hgstart, or /hgfake add <n>.
+# join then silently starts a match. To test solo use /hg start, or /hg fake add <n>.
 min-players: 2
 
 # At this many participants the countdown collapses to the short fuse below — a full lobby
@@ -39,7 +39,7 @@ max-players: 120
 
 # The line shown under the server name in the multiplayer list. Same story as max-players:
 # server.properties is not the authority here.
-motd: 'Minecraft Hunger Games'
+motd: 'Minecraft Hardcore Games'
 
 # Seconds of countdown once the threshold is hit, when the lobby is below busy-players.
 # Long on purpose: with a 2-player floor, the five minutes is the window for more people to
@@ -66,6 +66,13 @@ border:
   # Ticks between damage applications. 10 = twice a second. Rates above are per second and
   # are scaled to this, so changing it alters the smoothness, not the lethality.
   damage-interval-ticks: 10
+  # The hard stop. A real vanilla border stands this many blocks past the damage zone, so a
+  # runner dying slowly outward cannot force the server to generate fresh terrain forever.
+  # By the time anyone sees the red wall they are already deep in lethal damage.
+  hard-wall-margin: 20
+  # Inside the map but within this many blocks of the edge, that player's chat repeatedly
+  # warns: the forcefield is nearby.
+  forcefield-warning-distance: 25
 
 # At match start everyone is teleported to a random point within this radius of centre...
 scatter-radius: 50
@@ -295,8 +302,9 @@ kits:
     # ...and with a shield raised as well. 1.0 = half a heart.
     blocking-damage: 1.0
   tank:
-    # Blast set off by a kill. Vanilla TNT is 4.0, so this is the "small" one the kit promises.
-    explosion-power: 3.0
+    # Blast set off by a kill. 4.0 is vanilla TNT: anyone standing over the body when it goes
+    # off is in real trouble. The Tank themselves never takes explosion damage.
+    explosion-power: 4.0
     # Off by default: with it on, every corpse craters the ground it fell on and the map ends
     # up pocked with holes. The loot is protected either way — it is spawned after the blast.
     break-blocks: false
@@ -513,6 +521,9 @@ kits:
     # rate limit, not a budget. Placing against existing water is always refused — touching
     # sources breed permanent springs.
     max-active: 6
+    # Seconds between one conjuring and the next, drawn on the XP bar. The cap above is the
+    # flood stop; this is what stops the sea being poured out one click at a time.
+    cooldown-seconds: 4
   cookiemonster:
     # Chance that breaking a patch of grass drops a cookie.
     grass-drop-chance: 0.2
@@ -618,3 +629,47 @@ worldgen:
   # shaded, valid spots take one, exactly where vanilla mushrooms survive. Soup is the healing
   # economy and the map is centred on a swamp, so the swamp should feed it. 0 turns it off.
   swamp-mushrooms-per-chunk: 6
+
+# The staff ladder. Owners appoint mods and trainees in game with /mods add; those live in
+# roles.json in the data folder and survive world rotation. The names listed HERE are grafted
+# on top as permanent owners — they cannot be dismissed from in game, only by editing this.
+staff:
+  owners:
+    - taborgreat
+
+# How long before invincibility ends the door closes on late joiners. People can connect and
+# be dropped into a running match (kitless) right up to this cutoff; the buffer exists so
+# nobody materialises into the world in the same breath PvP goes live.
+late-join-cutoff-seconds: 5
+
+# Flag-only anticheat. It never punishes and never cancels — every finding is one [STAFF]
+# line for a human to judge. Two checks: melee reach and sustained mid-air hover.
+watchdog:
+  enabled: true
+  # Eye-to-hitbox distance on a landed hit before it is flagged. Vanilla reach is ~3 blocks;
+  # the slack above that is eaten by latency and hitbox edges. Do not tighten this below 5.
+  max-reach: 5.2
+  # Consecutive seconds of unsupported, non-falling hover before a flag. Kit movement
+  # (Kangaroo, Launcher, Grappler) spends nearly all its arc falling, which resets the count.
+  hover-seconds: 4
+
+# Every chunk of the play area is generated up front at boot, while the lobby fills — so no
+# player ever triggers terrain generation mid-match. Generated chunks persist on disk; the
+# sweep covers the hard border wall plus margin-chunks beyond it. parallel is how many chunk
+# generations run at once: higher finishes sooner but leans harder on the CPU during lobby.
+pregen:
+  enabled: true
+  margin-chunks: 2
+  parallel: 8
+  # Pipeline width once a match is LIVE. The sweep works centre-out, so by the drop the
+  # middle of the map is already baked; whatever rim is left fills in at this trickle,
+  # yielding to the game instead of competing with it.
+  parallel-during-match: 2
+
+# Distances stamped onto the world at boot, because server.properties is rewritten on
+# shutdown for world rotation. Client and tick load scale with the SQUARE of these.
+# view-distance is chunks sent to each client; simulation-distance is chunks the server
+# actually ticks around each player. 0 leaves the server default alone.
+performance:
+  view-distance: 8
+  simulation-distance: 6

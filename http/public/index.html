@@ -3,22 +3,35 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Minecraft Hunger Games</title>
+  <title>Minecraft Hardcore Games</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <main>
-  <h1>Minecraft Hunger Games</h1>
-  <nav><a href="/">Home</a><a href="/kits.html">Kits</a><a href="/stats.html">Stats</a></nav>
+  <h1>Minecraft Hardcore Games</h1>
+  <nav><a href="/">Home</a><a href="/stats.html">Stats</a><a href="/kits.html">Kits</a><a href="/faq.html">FAQ</a></nav>
 
-  <h2>Live</h2>
-  <p id="tracker">Loading…</p>
+  <h2>Status</h2>
+  <p id="tracker" class="live">Loading…</p>
 
-  <h2>How to play</h2>
-  <p>
-    Works on Java and Bedrock. Pick a kit with <code>/kit &lt;name&gt;</code> before the match starts. You will have 2 minutes of invisibility to gather yourself, and then full PvP. Use Mushroom stews to heal hearts. A feast spawns around 20 minutes in, and a final End Game death match if the game is longer than 60 minutes. There is only one server for now with a minimum of 2 players to start the 5 minute countdown, and a max of 120 players. If you die, you will need to wait for the next match to play again.Your compass points at the nearest player.
+  <h2>About</h2>
+  <p class="about">
+    Hardcore Games for Java and Bedrock.<br><br>
+    Pick a kit with <code>/kit &lt;name&gt;</code>
+    before The Game starts.<br><br>
+    A minimum of 2 players starts a 5 minute countdown, and up to 120 can join before the
+    start.<br><br>
+    There is two minutes of invincibility before full PvP.<br><br>
+    If you die then you are out of The Game permanently.<br><br>
+    Mushroom stew heals hearts, and your compass points at the nearest player.<br><br>
+    A feast spawns later in The Game for players to battle for the loots.<br><br>
+    If a match lasts longer than 60 minutes, players are teleported to a death match
+    arena.<br><br>
+    Nether, Diamond, and The End are disabled, and the world is reset after each match.<br><br>
+    <br><br>
+    Choose your kit wisely, prepare your strats, and good luck on winning.
   </p>
 
   <script>
@@ -38,9 +51,11 @@
       try {
         const s = await (await fetch('/api/status')).json();
         if (s.offline) {
+          el.className = 'live live-busy';
           el.innerHTML = 'Server is restarting or offline, check back in a minute.';
           return;
         }
+        el.className = s.joinable ? 'live live-join' : 'live live-busy';
         let html = line('<b>' + (PHASES[s.state] || s.state) + '</b>');
         html += line('Players online: ' + s.online + ' / ' + s.maxPlayers);
         if (s.joinable) {
@@ -51,6 +66,7 @@
         }
         el.innerHTML = html;
       } catch {
+        el.className = 'live live-busy';
         el.innerHTML = 'Could not reach the site backend.';
       }
     }
