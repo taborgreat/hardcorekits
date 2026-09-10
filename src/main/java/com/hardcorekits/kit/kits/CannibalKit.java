@@ -38,8 +38,8 @@ public final class CannibalKit implements Kit {
 
     @Override
     public String description() {
-        return "Hitting a player feeds you and gives them Hunger. Starts with a raw cod and an "
-                + "ocelot egg.";
+        return "Hitting a player feeds you and gives them Hunger. You start with a raw cod and "
+                + "an ocelot egg.";
     }
 
     @Override

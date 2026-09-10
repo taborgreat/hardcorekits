@@ -3,14 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Player, Minecraft Hardcore Games</title>
+  <title>Minecraft Hardcore Games: Player</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
-  <link rel="stylesheet" href="/style.css?v=5">
+  <link rel="stylesheet" href="/style.css?v=69">
 </head>
-<body>
+<body class="swords">
 <main>
-  <nav><a href="/">Home</a><a href="/stats.html">Stats</a><a href="/kits.html">Kits</a><a href="/faq.html">FAQ</a></nav>
+  <p class="ip">IP: <code class="ip-copy" title="Click to copy">hardcorekits.com</code><span class="mcver"></span></p>
+
+  <h1>Player stats</h1>
+
+  <header class="banner">
+    <div class="alpha"><span class="year">2026</span> Alpha v0.1</div>
+    <nav><a href="/">Home</a><a href="/news.html">News</a><a href="/stats.html">Stats</a><a href="/kits.html">Kits</a><a href="/faq.html">FAQ</a></nav>
+  </header>
   <div id="page" class="panel">Loading…</div>
 
   <script>
@@ -33,7 +40,7 @@
         el.innerHTML = 'No player given. <a href="/stats.html">Search for one.</a>';
         return;
       }
-      document.title = name + ' — Minecraft Hardcore Games';
+      document.title = 'Minecraft Hardcore Games: ' + name;
 
       const res = await fetch('/api/stats?player=' + encodeURIComponent(name));
       if (!res.ok) {
@@ -77,20 +84,39 @@
       const kits = Object.entries(p.kits || {})
           .sort((a, b) => b[1].games - a[1].games || b[1].kills - a[1].kills);
       if (kits.length) {
-        html += '<h2>By kit</h2>';
-        html += '<table><tr><th>Kit</th><th>Games</th>'
-              + '<th>Wins</th><th>Kills</th><th>Kills/game</th><th>Win rate</th></tr>';
+        html += '<h2>Kits</h2>';
+        // data-label lets the stylesheet stack each row into a card on narrow screens.
+        const cell = (label, value) => '<td data-label="' + label + '">' + value + '</td>';
+        html += '<table class="kit-table"><thead><tr><th>Kit</th><th>Games</th>'
+              + '<th>Wins</th><th>Kills</th><th>Kills/game</th><th>Win rate</th></tr></thead><tbody>';
         for (const [id, k] of kits) {
-          html += '<tr><td>' + (names[id] || id) + '</td><td>' + k.games + '</td><td>'
-                + k.wins + '</td><td>' + k.kills + '</td><td>' + avg(k.kills, k.games)
-                + '</td><td>' + pct(k.wins, k.games) + '</td></tr>';
+          html += '<tr>' + cell('Kit', names[id] || id) + cell('Games', k.games)
+                + cell('Wins', k.wins) + cell('Kills', k.kills)
+                + cell('Kills/game', avg(k.kills, k.games))
+                + cell('Win rate', pct(k.wins, k.games)) + '</tr>';
         }
-        html += '</table>';
-      } else {
-        html += '<p>No per-kit history yet. It starts recording from their next match.</p>';
+        html += '</tbody></table>';
       }
+      // No kit data yet: show nothing rather than an apology.
       el.outerHTML = '<div>' + html + '</div>';
     })();
+  </script>
+
+  <script>
+    // The Minecraft version next to the address, same as on the homepage.
+    fetch('/api/status').then((r) => r.json()).then((s) => {
+      if (s.version) document.querySelector('.mcver').textContent = ' \u00b7 MC v' + s.version;
+    }).catch(() => {});
+
+    // Click the address to copy it, same as on the homepage.
+    document.querySelectorAll('.ip code').forEach((ip) => {
+      const text = ip.textContent;
+      ip.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(text); } catch { return; }
+        ip.textContent = 'Copied!';
+        setTimeout(() => { ip.textContent = text; }, 1200);
+      });
+    });
   </script>
 </main>
 </body>

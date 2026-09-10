@@ -51,7 +51,8 @@ public final class DiggerKit implements Kit {
 
     @Override
     public String description() {
-        return "Place a dragon egg and a 5x5 shaft opens under it a moment later. Starts with six.";
+        return "Place a dragon egg and a second later a 5x5 shaft drops out under it. You "
+                + "start with six.";
     }
 
     @Override

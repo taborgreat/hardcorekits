@@ -74,8 +74,8 @@ public final class BarbarianKit implements Kit {
 
     @Override
     public String description() {
-        return "Start with Tyrfing, a wooden sword that reforges itself as you earn XP. Kills are worth the most, "
-                + "and each one more than the last.";
+        return "You start with Tyrfing, a wooden sword that upgrades itself as you gain XP. "
+                + "Killing players upgrades it the fastest, but mobs will also do the trick.";
     }
 
     @Override

@@ -82,7 +82,7 @@ public final class KitRegistry {
     /** Kits with tuning values of their own take the config; the rest ignore it. */
     public void registerDefaults(GameConfig config) {
         register(new FighterKit());
-        register(new DemomanKit());
+        register(new DemomanKit(config));
         register(new StomperKit());
         register(new DiggerKit(config));
         register(new CultivatorKit());

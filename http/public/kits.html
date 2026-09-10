@@ -3,31 +3,84 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kits, Minecraft Hardcore Games</title>
+  <title>Minecraft Hardcore Games: Kits</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
-  <link rel="stylesheet" href="/style.css?v=5">
+  <link rel="stylesheet" href="/style.css?v=69">
 </head>
-<body>
+<body class="swords">
 <main>
-  <h1>Kits</h1>
-  <nav><a href="/">Home</a><a href="/stats.html">Stats</a><a href="/kits.html">Kits</a><a href="/faq.html">FAQ</a></nav>
+  <p class="ip">IP: <code class="ip-copy" title="Click to copy">hardcorekits.com</code><span class="mcver"></span></p>
 
-  <p>Pick one in game with <code>/kit &lt;name&gt;</code> before the countdown ends.</p>
+  <h1>Kits</h1>
+
+  <header class="banner">
+    <div class="alpha"><span class="year">2026</span> Alpha v0.1</div>
+    <nav><a href="/">Home</a><a href="/news.html">News</a><a href="/stats.html">Stats</a><a href="/kits.html">Kits</a><a href="/faq.html">FAQ</a></nav>
+  </header>
+
+  <form class="search" id="kit-search">
+    <input id="kit-filter" placeholder="Kit name" autocomplete="off">
+    <button class="mc-button" type="submit">Search</button>
+  </form>
+  <p id="kits-intro">Pick one in game with <code>/kit &lt;name&gt;</code> before the countdown ends.</p>
   <div id="kits" class="panel">Loading…</div>
 
   <script>
     (async () => {
       const el = document.getElementById('kits');
+      let kits;
       try {
-        const kits = await (await fetch('/api/kits')).json();
-        el.outerHTML = kits.map(k =>
-          '<div class="kit-card"><div class="kit-name">' + k.name + '</div>'
-          + '<div class="kit-desc">' + k.description + '</div></div>').join('');
+        kits = await (await fetch('/api/kits')).json();
       } catch {
         el.textContent = 'Could not load the kit list.';
+        return;
       }
+      el.className = '';
+      el.innerHTML = kits.map(k =>
+        '<div class="kit-card"><div class="kit-name">' + k.name + '</div>'
+        + '<div class="kit-desc">' + k.description + '</div></div>').join('')
+        + '<p id="no-kits" hidden>No kits match that.</p>';
+
+      // Filter as you type, on the name or anything in the description.
+      const cards = [...el.querySelectorAll('.kit-card')];
+      const none = document.getElementById('no-kits');
+      const field = document.getElementById('kit-filter');
+      const apply = () => {
+        const q = field.value.trim().toLowerCase();
+        let shown = 0;
+        cards.forEach((card, i) => {
+          const hit = !q || (kits[i].name + ' ' + kits[i].description).toLowerCase().includes(q);
+          card.hidden = !hit;
+          if (hit) shown++;
+        });
+        none.hidden = shown > 0;
+      };
+      field.addEventListener('input', apply);
+      // The button is for phones: it applies the filter and puts the keyboard away.
+      document.getElementById('kit-search').addEventListener('submit', (e) => {
+        e.preventDefault();
+        apply();
+        field.blur();
+      });
     })();
+  </script>
+
+  <script>
+    // The Minecraft version next to the address, same as on the homepage.
+    fetch('/api/status').then((r) => r.json()).then((s) => {
+      if (s.version) document.querySelector('.mcver').textContent = ' \u00b7 MC v' + s.version;
+    }).catch(() => {});
+
+    // Click the address to copy it, same as on the homepage.
+    document.querySelectorAll('.ip code').forEach((ip) => {
+      const text = ip.textContent;
+      ip.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(text); } catch { return; }
+        ip.textContent = 'Copied!';
+        setTimeout(() => { ip.textContent = text; }, 1200);
+      });
+    });
   </script>
 </main>
 </body>

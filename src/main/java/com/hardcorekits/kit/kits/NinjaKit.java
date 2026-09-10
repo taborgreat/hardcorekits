@@ -32,8 +32,8 @@ public final class NinjaKit implements Kit {
 
     @Override
     public String description() {
-        return "Hit someone and you can crouch to teleport to them for the next ten seconds. Seven "
-                + "seconds between jumps.";
+        return "Hit someone and for the next ten seconds you can crouch to teleport to them. "
+                + "Seven seconds between jumps.";
     }
 
     @Override

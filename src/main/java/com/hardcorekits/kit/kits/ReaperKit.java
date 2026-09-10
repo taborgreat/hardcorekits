@@ -34,8 +34,8 @@ public final class ReaperKit implements Kit {
 
     @Override
     public String description() {
-        return "Hits with your wooden hoe wither players: damage over time, and hearts they "
-                + "can't read.";
+        return "Hits with your wooden hoe give players Wither. They lose health over time and "
+                + "cannot see how many hearts they have left.";
     }
 
     @Override

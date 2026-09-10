@@ -45,8 +45,8 @@ public final class JackhammerKit implements Kit {
 
     @Override
     public String description() {
-        return "A stone hammer. Break a block and the whole column above it goes with it. "
-                + "Five swings, then it needs to cool.";
+        return "A stone hammer. Break a block and the whole column above it comes down too. "
+                + "Five swings, then it needs a moment to cool down.";
     }
 
     @Override

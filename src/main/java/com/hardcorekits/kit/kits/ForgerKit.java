@@ -35,8 +35,8 @@ public final class ForgerKit implements Kit {
 
     @Override
     public String description() {
-        return "Click coal onto ore in your inventory to smelt it instantly, 1 coal per ingot. "
-                + "Starts with 3 coal.";
+        return "Drag coal onto ore in your inventory and it smelts on the spot, one coal per "
+                + "ingot. You start with 3 coal.";
     }
 
     @Override

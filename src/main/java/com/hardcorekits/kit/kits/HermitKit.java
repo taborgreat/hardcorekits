@@ -65,7 +65,8 @@ public final class HermitKit implements Kit {
 
     @Override
     public String description() {
-        return "Start alone in the furthest swamp, jungle or desert, far from everyone else.";
+        return "You start alone in the farthest swamp, jungle or desert, far from everyone "
+                + "else.";
     }
 
     @Override

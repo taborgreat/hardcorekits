@@ -33,8 +33,9 @@ public final class VampireKit implements Kit {
 
     @Override
     public String description() {
-        return "Kills heal you. Untouched kills earn a vial that hurts others and heals you. "
-                + "Harming splashes heal you; healing splashes hurt you.";
+        return "Kills heal you. Clean kills, where you took no damage, give you a vial that "
+                + "heals you and hurts everyone else. Harming potions heal you and healing "
+                + "potions hurt you.";
     }
 
     @Override

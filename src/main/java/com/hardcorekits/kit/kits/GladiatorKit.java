@@ -45,8 +45,8 @@ public final class GladiatorKit implements Kit {
 
     @Override
     public String description() {
-        return "Right click an enemy with your iron bars to force a 1v1 in a sky arena. "
-                + "Sealed for a minute, then the walls drop.";
+        return "Right click an enemy with your iron bars and you both get pulled into a 1v1 "
+                + "arena in the sky. It stays sealed for a minute, then the walls drop.";
     }
 
     @Override

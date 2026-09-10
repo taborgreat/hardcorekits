@@ -33,8 +33,8 @@ public final class SoulstealerKit implements Kit {
 
     @Override
     public String description() {
-        return "Death revives you once: 10s invisible to touch someone, then 10s to kill them "
-                + "at 40% damage. Succeed and you live; fail and you die.";
+        return "Dying revives you once. You get 10 seconds invisible to touch someone, then 10 "
+                + "seconds to kill them doing 40% damage. Fail and you die for real.";
     }
 
     @Override

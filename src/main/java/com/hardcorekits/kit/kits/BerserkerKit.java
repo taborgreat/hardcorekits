@@ -34,7 +34,8 @@ public final class BerserkerKit implements Kit {
 
     @Override
     public String description() {
-        return "Kills grant Blood Lust: Strength for a few seconds, but you cannot jump while it lasts.";
+        return "Every kill gives you Blood Lust, which is Strength for a few seconds. You "
+                + "cannot jump while it lasts, so make the hits count.";
     }
 
     @Override

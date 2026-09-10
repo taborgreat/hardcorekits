@@ -44,7 +44,7 @@ public final class KayaKit implements Kit {
 
     @Override
     public String description() {
-        return "Grass you place vanishes under enemies. Craft more from dirt and seeds.";
+        return "Grass blocks you place gives way under enemies. Craft more from dirt and seeds.";
     }
 
     @Override

@@ -34,7 +34,8 @@ public final class StomperKit implements Kit {
 
     @Override
     public String description() {
-        return "Fall damage is capped at two hearts and dumped on whoever you land next to. Starts with ladders.";
+        return "Your fall damage is capped at two hearts, and whoever you land next to takes "
+                + "it instead. You start with ladders.";
     }
 
     @Override

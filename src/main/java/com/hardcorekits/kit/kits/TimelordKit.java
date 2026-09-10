@@ -43,8 +43,8 @@ public final class TimelordKit implements Kit {
 
     @Override
     public String description() {
-        return "A pocket watch that freezes everyone within six blocks for ten seconds. They can still "
-                + "swing, and hitting one releases it.";
+        return "A pocket watch that freezes everyone within six blocks for ten seconds. They "
+                + "can still swing, and hitting a frozen player sets them free.";
     }
 
     @Override

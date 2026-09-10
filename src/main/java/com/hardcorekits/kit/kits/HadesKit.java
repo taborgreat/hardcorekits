@@ -36,8 +36,8 @@ public final class HadesKit implements Kit {
 
     @Override
     public String description() {
-        return "Right click a mob with your iron ingot to make it a minion. Minions follow "
-                + "you and fight whoever fights you.";
+        return "Right click a mob with your iron ingot and it becomes your minion. Minions "
+                + "follow you and fight anyone who fights you.";
     }
 
     @Override

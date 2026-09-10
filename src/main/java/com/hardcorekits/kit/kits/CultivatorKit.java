@@ -29,7 +29,8 @@ public final class CultivatorKit implements Kit {
 
     @Override
     public String description() {
-        return "Seeds, crops and saplings grow instantly when you plant them. No starting gear.";
+        return "Anything you plant grows the moment you plant it, seeds, crops, saplings, all "
+                + "of it.";
     }
 
     @Override

@@ -2,7 +2,7 @@
   "name": "hg-web",
   "version": "1.0.0",
   "private": true,
-  "description": "Website for the Hunger Games server: landing page with live game tracker, kits, and player stats.",
+  "description": "Website for the Hardcore Games server: landing page with live game tracker, kits, and player stats.",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js"

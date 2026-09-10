@@ -1,5 +1,6 @@
 package com.hardcorekits.kit.kits;
 
+import com.hardcorekits.game.GameConfig;
 import com.hardcorekits.kit.Kit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -21,6 +22,12 @@ public final class DemomanKit implements Kit {
 
     public static final String ID = "demoman";
 
+    private final GameConfig config;
+
+    public DemomanKit(GameConfig config) {
+        this.config = config;
+    }
+
     @Override
     public String id() {
         return ID;
@@ -33,12 +40,14 @@ public final class DemomanKit implements Kit {
 
     @Override
     public String description() {
-        return "Place a stone pressure plate on gravel to arm a hidden mine. Starts with one of each.";
+        return "Put a stone pressure plate on gravel and it becomes a hidden mine. You start "
+                + "with two of each, so pick your spots.";
     }
 
     @Override
     public void apply(Player player) {
-        player.getInventory().addItem(new ItemStack(Material.GRAVEL));
-        player.getInventory().addItem(new ItemStack(Material.STONE_PRESSURE_PLATE));
+        int mines = config.demomanMines();
+        player.getInventory().addItem(new ItemStack(Material.GRAVEL, mines));
+        player.getInventory().addItem(new ItemStack(Material.STONE_PRESSURE_PLATE, mines));
     }
 }

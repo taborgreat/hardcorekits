@@ -18,7 +18,9 @@ import java.util.Arrays;
 import java.util.Locale;
 
 /**
- * The civilian command set: /help, /stats, /kills, /msg, /feast, /game.
+ * The civilian command set: /help, /stats, /msg, /feast, /game.
+ *
+ * <p>There is no /kills: the XP level is the match kill count, and /stats says it too.
  *
  * <p>Everything here is read-only or social; nothing mutates the match. That is what makes
  * the whole set safe to leave open all game long.
@@ -39,7 +41,6 @@ public final class PlayerCommands implements CommandExecutor {
         switch (command.getName().toLowerCase(Locale.ROOT)) {
             case "help" -> help(sender);
             case "stats" -> stats(sender, args);
-            case "kills" -> kills(sender);
             case "msg" -> whisper(sender, args);
             case "feast" -> feast(sender);
             case "game" -> gameInfo(sender);
@@ -68,8 +69,7 @@ public final class PlayerCommands implements CommandExecutor {
                 {"/kit <name>", "choose a kit before the game starts"},
                 {"/kit", "see your current kit"},
                 {"/kits [page]", "browse every kit"},
-                {"/stats [player]", "lifetime stats, plus this match"},
-                {"/kills", "your kills this match"},
+                {"/stats [player]", "lifetime stats, plus your kills this match"},
                 {"/msg <player> <text>", "whisper privately, also /tell and /whisper"},
                 {"/feast", "the feast coordinates, once it has appeared"},
                 {"/game", "match time and players remaining"}}) {
@@ -113,7 +113,7 @@ public final class PlayerCommands implements CommandExecutor {
                 .append(Component.text("  " + what, NamedTextColor.GRAY)));
     }
 
-    // ---------------------------------------------------------------- /stats and /kills
+    // ---------------------------------------------------------------- /stats
 
     private void stats(CommandSender sender, String[] args) {
         String name = args.length > 0 ? args[0]
@@ -135,14 +135,6 @@ public final class PlayerCommands implements CommandExecutor {
         if (online != null && game.isAlive(online)) {
             Msg.info(sender, "This match: " + game.killsThisMatch(online) + " kills.");
         }
-    }
-
-    private void kills(CommandSender sender) {
-        if (!(sender instanceof Player player)) {
-            Msg.error(sender, "Only players have a match to count.");
-            return;
-        }
-        Msg.info(sender, "Kills this match: " + game.killsThisMatch(player));
     }
 
     // ---------------------------------------------------------------- /msg

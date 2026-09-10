@@ -43,8 +43,9 @@ public final class LauncherKit implements Kit {
 
     @Override
     public String description() {
-        return "Sponges that throw anyone who steps on them, you included, with no fall damage on the "
-                + "way down. Stack them for height, lay them lopsided to throw sideways.";
+        return "Sponges that fling anyone who steps on them, you included, with no fall damage "
+                + "on the landing. Stack them for height, or place them off center to throw "
+                + "sideways.";
     }
 
     @Override

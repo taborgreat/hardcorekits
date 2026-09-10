@@ -27,7 +27,7 @@ const POLL_MS = 30_000;
 
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const TYPES = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript',
-                '.png': 'image/png', '.ico': 'image/x-icon' };
+                '.png': 'image/png', '.gif': 'image/gif', '.ico': 'image/x-icon' };
 
 // ---------------------------------------------------------------- live status cache
 

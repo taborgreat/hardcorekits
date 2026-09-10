@@ -33,7 +33,8 @@ public final class AnchorKit implements Kit {
 
     @Override
     public String description() {
-        return "Take and deal no melee knockback. No boots, loud iron footsteps, and arrows still shove you.";
+        return "You cannot wear boots, and your footsteps make iron steps. You take no "
+                + "knockback and deal none, except arrows can still knock you around.";
     }
 
     @Override

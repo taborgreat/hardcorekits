@@ -37,7 +37,8 @@ public final class FishermanKit implements Kit {
 
     @Override
     public String description() {
-        return "Your fishing rod reels players to your feet, off towers, off ledges, into whatever you dug.";
+        return "Your fishing rod pulls players right to your feet. Off towers, off ledges, or "
+                + "into whatever hole you dug for them.";
     }
 
     @Override

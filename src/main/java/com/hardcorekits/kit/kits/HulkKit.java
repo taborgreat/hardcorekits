@@ -37,8 +37,8 @@ public final class HulkKit implements Kit {
 
     @Override
     public String description() {
-        return "With an empty hand, right click a player or mob to pick them up, crouch to charge, "
-                + "left click to throw. Players can sneak free.";
+        return "With an empty hand, right click a player or mob to pick them up. Hold crouch "
+                + "to charge and left click to throw them, but players can crouch to break free.";
     }
 
     @Override

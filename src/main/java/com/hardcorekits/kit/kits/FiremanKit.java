@@ -37,7 +37,8 @@ public final class FiremanKit implements Kit {
 
     @Override
     public String description() {
-        return "Immune to fire, lava and lightning. Starts with a water bucket. You can still drown.";
+        return "Fire, lava and lightning cannot hurt you, and you start with a water bucket. "
+                + "You can still drown though.";
     }
 
     @Override

@@ -31,8 +31,8 @@ public final class JellyfishKit implements Kit {
 
     @Override
     public String description() {
-        return "Right click a block with an empty hand and water appears there for three seconds. No "
-                + "bucket, and it never runs out.";
+        return "Right click a block with an empty hand and water appears there for three "
+                + "seconds. No bucket needed, and it never runs out.";
     }
 
     @Override

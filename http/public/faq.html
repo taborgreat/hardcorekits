@@ -3,15 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>FAQ, Minecraft Hardcore Games</title>
+  <title>Minecraft Hardcore Games: FAQ</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
-  <link rel="stylesheet" href="/style.css?v=5">
+  <link rel="stylesheet" href="/style.css?v=69">
 </head>
-<body>
+<body class="swords">
 <main>
+  <p class="ip">IP: <code class="ip-copy" title="Click to copy">hardcorekits.com</code><span class="mcver"></span></p>
+
   <h1>FAQ</h1>
-  <nav><a href="/">Home</a><a href="/stats.html">Stats</a><a href="/kits.html">Kits</a><a href="/faq.html">FAQ</a></nav>
+
+  <header class="banner">
+    <div class="alpha"><span class="year">2026</span> Alpha v0.1</div>
+    <nav><a href="/">Home</a><a href="/news.html">News</a><a href="/stats.html">Stats</a><a href="/kits.html">Kits</a><a href="/faq.html">FAQ</a></nav>
+  </header>
 
   <details class="faq">
     <summary><span class="faq-q">Why is there only one server?</span></summary>
@@ -50,8 +56,8 @@
     blocks.<br><br>
     Once the game starts, all players are brought back to the middle and have 2 minutes of
     invincibility to run where needed, collect supplies, and get ready. Once invincibility is
-    over, the game is on. If you are killed or die, you are banned from the server until the
-    next game.<br><br>
+    over, the game is on. Your XP level is your kill count for the match. If you are killed
+    or die, you are banned from the server until the next game.<br><br>
     There are two special events later in the game. The first is The Feast, which spawns as
     an empty grass circle around 20 minutes in, somewhere between -200 and 200 of the middle.
     After a 5 minute countdown, chests and an enchantment table spawn in its centre.<br><br>
@@ -85,16 +91,28 @@ More OG terrains are promoted (swamps, pine forests, mountains, oak forests, bir
   </details>
 
   <details class="faq">
+    <summary><span class="faq-q">How do I use a kit's ability?</span></summary>
+    <div class="faq-a">
+    Most kits work by right clicking with the kit's item, on a block, a player or the air
+    depending on the kit. On Bedrock that is the use button, or tap and hold on touch. Some
+    kits are driven by crouching (shift) instead: the Hulk winds up a throw by holding crouch
+    with someone on their shoulders, the Turtle's shell only works while crouched, and anyone
+    being carried can crouch to wriggle free. Abilities unlock when invincibility ends. Each
+    kit's description on the <a href="/kits.html">Kits page</a>, or <code>/kit</code> in game,
+    says exactly what to click.
+    </div>
+  </details>
+
+  <details class="faq">
     <summary><span class="faq-q">What commands can I use in game?</span></summary>
     <div class="faq-a">
-    These are the only commands on the server. Everything else is switched off.
+    These are the only commands on the server.
     <ul class="commands">
       <li><code>/kit &lt;name&gt;</code> choose a kit before the game starts</li>
       <li><code>/kit</code> see your current kit and what it does</li>
-      <li><code>/kits [page]</code> browse every kit</li>
+      <li><code>/kits [page number]</code> browse every kit, a page at a time</li>
       <li><code>/help</code> how the game works, and this list</li>
-      <li><code>/stats [player]</code> lifetime stats, plus this match</li>
-      <li><code>/kills</code> your kills this match</li>
+      <li><code>/stats [player]</code> lifetime stats, plus your kills this match</li>
       <li><code>/msg &lt;player&gt; &lt;text&gt;</code> whisper privately, also <code>/tell</code>, <code>/whisper</code> and <code>/w</code></li>
       <li><code>/feast</code> where the feast is, once it has appeared</li>
       <li><code>/game</code> match time and players remaining</li>
@@ -105,9 +123,12 @@ More OG terrains are promoted (swamps, pine forests, mountains, oak forests, bir
   <details class="faq">
     <summary><span class="faq-q">How do I see stats?</span></summary>
     <div class="faq-a">
-    Visit the <a href="/stats.html">Stats page</a> and search any Minecraft name, or click a
-    name on the leaderboard. Wins, kills, streaks and per-kit records are all tracked
-    automatically.
+    Type <code>/stats</code> in game for your wins, kills, games and streak, or
+    <code>/stats &lt;player&gt;</code> for anyone else's. Your kill count for the current match
+    is your XP level, so it is always on screen.<br><br>
+    For individual kit stats, visit the <a href="/stats.html">Stats page</a> and search any
+    Minecraft name, or click a name on the leaderboard. Wins, kills, streaks and per-kit
+    records are all tracked automatically.
     </div>
   </details>
 
@@ -118,6 +139,23 @@ More OG terrains are promoted (swamps, pine forests, mountains, oak forests, bir
     reports, or hacker reports.
     </div>
   </details>
+
+  <script>
+    // The Minecraft version next to the address, same as on the homepage.
+    fetch('/api/status').then((r) => r.json()).then((s) => {
+      if (s.version) document.querySelector('.mcver').textContent = ' \u00b7 MC v' + s.version;
+    }).catch(() => {});
+
+    // Click the address to copy it, same as on the homepage.
+    document.querySelectorAll('.ip code').forEach((ip) => {
+      const text = ip.textContent;
+      ip.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(text); } catch { return; }
+        ip.textContent = 'Copied!';
+        setTimeout(() => { ip.textContent = text; }, 1200);
+      });
+    });
+  </script>
 </main>
 </body>
 </html>

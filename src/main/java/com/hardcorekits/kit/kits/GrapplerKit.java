@@ -44,8 +44,8 @@ public final class GrapplerKit implements Kit {
 
     @Override
     public String description() {
-        return "Cast your hook at terrain, mobs or players and reel to launch yourself "
-                + "towards it. Pulling saves you from falls.";
+        return "Hook onto terrain, mobs or players and reel in to launch yourself at them. "
+                + "Reeling in also saves you from a fall.";
     }
 
     @Override

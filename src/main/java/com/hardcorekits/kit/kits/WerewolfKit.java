@@ -35,8 +35,8 @@ public final class WerewolfKit implements Kit {
 
     @Override
     public String description() {
-        return "Strength, Speed and Night Vision at night; Weakness by day. Wolves never "
-                + "attack you. Starts with a clock.";
+        return "Strength, Speed and Night Vision at night, Weakness in the day. Wolves never "
+                + "attack you, and you start with a clock.";
     }
 
     @Override

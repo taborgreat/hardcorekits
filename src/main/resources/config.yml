@@ -303,6 +303,8 @@ kits:
     # juggling one player in the air forever; 0 restores the classic free-for-all.
     cooldown-seconds: 2
   demoman:
+    # Mines in the starting kit: this many gravel and this many stone pressure plates.
+    mines: 2
     # Blast strength of a mine. Vanilla TNT is 4.0.
     explosion-power: 4.0
     # Whether the blast craters the terrain, like real TNT.

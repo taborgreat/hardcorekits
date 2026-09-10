@@ -36,7 +36,8 @@ public final class PoseidonKit implements Kit {
 
     @Override
     public String description() {
-        return "Hit far harder while standing in water and never drown while swimming, but leaving it slows you.";
+        return "You hit much harder while standing in water and you never drown. Getting out of "
+                + "water slows you down for 5 seconds.";
     }
 
     @Override

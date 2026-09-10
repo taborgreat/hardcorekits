@@ -40,8 +40,8 @@ public final class GrandpaKit implements Kit {
 
     @Override
     public String description() {
-        return "A plain looking stick with Knockback II. Hits send people flying, off cliffs if you pick "
-                + "your ground. There is only one, so do not lose it.";
+        return "A plain stick with Knockback II. Fight near cliffs and people go flying. You "
+                + "only get one, so do not lose it.";
     }
 
     @Override

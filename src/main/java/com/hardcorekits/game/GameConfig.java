@@ -72,6 +72,7 @@ public final class GameConfig {
     private final int feastChests;
     private final int feastSpawnRadius;
     private final int maxBuildHeight;
+    private final int demomanMines;
     private final double demomanExplosionPower;
     private final boolean demomanBreaksBlocks;
     private final double turtleCrouchDamage;
@@ -282,6 +283,7 @@ public final class GameConfig {
         this.feastChests = c.getInt("feast.chests", 12);
         this.feastSpawnRadius = c.getInt("feast.spawn-radius", 200);
         this.maxBuildHeight = c.getInt("build.max-height", 140);
+        this.demomanMines = c.getInt("kits.demoman.mines", 2);
         this.demomanExplosionPower = c.getDouble("kits.demoman.explosion-power", 4.0D);
         this.demomanBreaksBlocks = c.getBoolean("kits.demoman.break-blocks", true);
         this.turtleCrouchDamage = c.getDouble("kits.turtle.crouch-damage", 2.0D);
@@ -729,6 +731,11 @@ public final class GameConfig {
     }
 
     /** Blast strength of a Demoman mine. Vanilla TNT is 4.0. */
+    /** Gravel and pressure plates in the starting kit, one mine per pair. */
+    public int demomanMines() {
+        return demomanMines;
+    }
+
     public double demomanExplosionPower() {
         return demomanExplosionPower;
     }

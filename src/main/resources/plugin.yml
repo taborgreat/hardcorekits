@@ -18,9 +18,6 @@ commands:
   stats:
     description: Lifetime stats for yourself or another player.
     usage: /stats [player]
-  kills:
-    description: Your kills this match.
-    usage: /kills
   msg:
     description: Whisper another player privately.
     usage: /msg <player> <message>

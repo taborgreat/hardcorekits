@@ -33,8 +33,8 @@ public final class CookiemonsterKit implements Kit {
 
     @Override
     public String description() {
-        return "Grass drops cookies. Eating one fills hunger, then health, and once both are full it "
-                + "gives Speed II.";
+        return "Breaking grass drops cookies. Eating one fills your hunger first, then your "
+                + "health, and once both are full you get Speed II.";
     }
 
     @Override

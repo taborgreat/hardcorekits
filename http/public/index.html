@@ -1,91 +1,137 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Minecraft Hardcore Games</title>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
-  <link rel="stylesheet" href="/style.css?v=5">
-</head>
-<body>
-<main>
-  <p class="ip">Minecraft IP: <code>hardcorekits.com</code><span id="mcver"></span></p>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Minecraft Hardcore Games</title>
+    <meta
+      name="description"
+      content="Hardcore Games, a fan tribute to the classic MC-HG Minecraft server of 2012 to 2015. Pick a kit, survive the feast and the death match, last one standing wins. Java and Bedrock. Play at hardcorekits.com."
+    />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+    />
+    <link rel="stylesheet" href="/style.css?v=69" />
+  </head>
+  <body class="swords">
+    <main>
+      <p class="ip">
+        IP:
+        <code id="ip-copy" title="Click to copy">hardcorekits.com</code
+        ><span id="mcver"></span>
+      </p>
+      <h1>Minecraft Hardcore Games</h1>
 
-  <h1>Minecraft Hardcore Games</h1>
-  <nav><a href="/">Home</a><a href="/stats.html">Stats</a><a href="/kits.html">Kits</a><a href="/faq.html">FAQ</a></nav>
+      <header class="banner">
+        <div class="alpha"><span class="year">2026</span> Alpha v0.1</div>
+        <nav>
+          <a href="/">Home</a><a href="/news.html">News</a><a href="/stats.html">Stats</a
+          ><a href="/kits.html">Kits</a><a href="/faq.html">FAQ</a>
+        </nav>
+      </header>
 
-  <section id="status-panel" class="panel live">
-    <h2>Game Status</h2>
-    <div id="tracker">Loading…</div>
-  </section>
+      <section id="status-panel" class="panel live">
+        <h2>Game State</h2>
+        <div id="tracker">Loading…</div>
+      </section>
+      <img class="gameplay" src="/gameplay.gif" alt="Hardcore Games gameplay" width="854" height="480" loading="lazy">
+      <section class="panel" id="about-panel">
+        <h2>About</h2>
+        <div class="about">
+          <span class="tribute"
+            >I was inspired by mc-hg, the classic McPVP server from 2012 to
+            2015.</span
+          >
+          <span class="dim">Can join on Java and Bedrock clients.</span><br /><br />
+          Pick a kit with <code>/kit &lt;name&gt;</code> before the game
+          starts.<br /><br />
+          A minimum of 2 players to begin the five minute countdown, and up to
+          120 can join before it starts.<br /><br />
+          There is two minutes of invincibility before full PvP.<br /><br />
+          If you die then you are kicked until the next match.<br /><br />
+          <span class="dim">Tip: Mushroom stew heals hearts, and your compass points at
+          the nearest player.</span><br /><br />
+          A feast spawns later on for players to battle for the loot.<br /><br />
+          If a match lasts longer than 60 minutes, players are teleported to a
+          death match arena.<br /><br />
+          Nether, Diamond, and The End are disabled, and the world is reset
+          after each match.<br /><br />
 
-  <section class="panel">
-    <h2>About</h2>
-    <div class="about">
-    Works for Java and Bedrock clients.<br><br>
-    Pick a kit with <code>/kit &lt;name&gt;</code>
-    before The Game starts.<br><br>
-    A minimum of 2 players starts a five minute countdown, and up to 120 can join before the
-    start.<br><br>
-    There is two minutes of invincibility before full PvP.<br><br>
-    If you die then you are out of The Game permanently.<br><br>
-    Mushroom stew heals hearts, and your compass points at the nearest player.<br><br>
-    A feast spawns later in The Game for players to battle for the loots.<br><br>
-    If a match lasts longer than 60 minutes, players are teleported to a death match
-    arena.<br><br>
-    Nether, Diamond, and The End are disabled, and the world is reset after each match.<br><br>
-    
-    Choose your kit wisely, prepare your strats, and good luck on winning.
-    </div>
-  </section>
+          Choose your kit wisely, prepare your strats, and good luck on
+          winning.<br /><br />
+          <span class="fineprint"
+            >A fan project. Not an official Minecraft product. Not approved by
+            or associated with Mojang or Microsoft, and not affiliated with the
+            original MC-HG server or its owners.</span
+          >
+        </div>
+      </section>
 
-  <script>
-    const PHASES = {
-      WAITING: 'Waiting for players. JOIN NOW!',
-      COUNTDOWN: 'Starting. JOIN NOW!',
-      INVULNERABLE: 'Match just started, everyone still invincible',
-      ACTIVE: 'Match in progress',
-      FEAST: 'Match in progress, the feast is out',
-      ENDING: 'Match ending, new game soon',
-      RESETTING: 'Server restarting for a fresh map, try again in a minute',
-    };
+      <script>
+        const PHASES = {
+          WAITING: "Waiting for players: Join Now!",
+          COUNTDOWN: "Starting: Join Now!",
+          INVULNERABLE: "Match just started, everyone still invincible",
+          ACTIVE: "Match in progress",
+          FEAST: "Match in progress, the feast is out",
+          ENDING: "Match ending, new game soon",
+          RESETTING: "Server restarting for a fresh map, try again in a minute",
+        };
 
-    function line(html) { return html + '<br>'; }
-
-    async function refresh() {
-      const el = document.getElementById('tracker');
-      const panel = document.getElementById('status-panel');
-      try {
-        const s = await (await fetch('/api/status')).json();
-        if (s.version) {
-          document.getElementById('mcver').textContent = ' \u00b7 ' + s.version;
+        function line(html) {
+          return html + "<br>";
         }
-        if (s.offline) {
-          panel.className = 'panel live live-busy';
-          el.innerHTML = 'Server is restarting or offline, check back in a minute.';
-          return;
-        }
-        panel.className = s.joinable ? 'panel live live-join' : 'panel live live-busy';
-        let html = line('<b>' + (PHASES[s.state] || s.state) + '</b>');
-        html += line('Players online: ' + s.online + ' / ' + s.maxPlayers);
-        if (s.joinable) {
-          html += line('Waiting on players: ' + s.participants + ' of ' + s.minPlayers + ' needed');
-        } else {
-          const m = Math.floor(s.matchElapsedSeconds / 60);
-          html += line('Match time: ' + m + 'm');
-        }
-        el.innerHTML = html;
-      } catch {
-        panel.className = 'panel live live-busy';
-        el.innerHTML = 'Could not reach the site backend.';
-      }
-    }
 
-    refresh();
-    setInterval(refresh, 30000);
+        async function refresh() {
+          const el = document.getElementById("tracker");
+          const panel = document.getElementById("status-panel");
+          try {
+            const s = await (await fetch("/api/status")).json();
+            if (s.version) {
+              document.getElementById("mcver").textContent =
+                " \u00b7 MC v" + s.version;
+            }
+            if (s.offline) {
+              panel.className = "panel live live-busy";
+              el.innerHTML =
+                "Server is restarting or offline, check back in a minute.";
+              return;
+            }
+            panel.className = s.joinable
+              ? "panel live live-join"
+              : "panel live live-busy";
+            let html = line("<b>" + (PHASES[s.state] || s.state) + "</b>");
+            html += line("Players online: " + s.online + " / " + s.maxPlayers);
+            if (!s.joinable) {
+              const m = Math.floor(s.matchElapsedSeconds / 60);
+              html += line("Match time: " + m + "m");
+            }
+            el.innerHTML = html;
+          } catch {
+            panel.className = "panel live live-busy";
+            el.innerHTML = "Could not reach the site backend.";
+          }
+        }
 
-  </script>
-</main>
-</body>
+        refresh();
+        setInterval(refresh, 30000);
+
+        // Click the address to copy it. The text says "Copied!" for a moment, then comes back.
+        const ip = document.getElementById("ip-copy");
+        ip.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText("hardcorekits.com");
+          } catch {
+            return; // no clipboard access here, the text is still selectable
+          }
+          ip.textContent = "Copied!";
+          setTimeout(() => {
+            ip.textContent = "hardcorekits.com";
+          }, 1200);
+        });
+      </script>
+    </main>
+  </body>
 </html>

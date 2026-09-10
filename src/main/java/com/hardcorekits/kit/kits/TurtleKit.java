@@ -35,7 +35,7 @@ public final class TurtleKit implements Kit {
 
     @Override
     public String description() {
-        return "Crouch to take almost no damage, but you cannot attack while crouched.";
+        return "Crouch and you take almost no damage. You cannot attack while crouched.";
     }
 
     @Override

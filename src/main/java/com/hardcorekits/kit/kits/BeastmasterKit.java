@@ -40,7 +40,8 @@ public final class BeastmasterKit implements Kit {
 
     @Override
     public String description() {
-        return "3 wolf eggs, 4 bones, and every bone tames. Your wolves get speed or regeneration.";
+        return "Starts with 3 wolf eggs and 4 bones, and every bone tames. Your wolves get speed or "
+                + "regeneration.";
     }
 
     @Override

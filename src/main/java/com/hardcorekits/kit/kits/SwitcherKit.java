@@ -48,8 +48,8 @@ public final class SwitcherKit implements Kit {
 
     @Override
     public String description() {
-        return "10 Switcher Balls. Land one on a player or mob and you swap places. "
-                + "Ordinary snowballs don't count.";
+        return "10 Switcher Balls. Hit a player or mob with one and you swap places with them. "
+                + "Regular snowballs do nothing.";
     }
 
     @Override

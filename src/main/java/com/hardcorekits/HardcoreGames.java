@@ -217,7 +217,6 @@ public final class HardcoreGames extends JavaPlugin {
         PlayerCommands player = new PlayerCommands(game, staff);
         bind("help", player, null);
         bind("stats", player, null);
-        bind("kills", player, null);
         bind("msg", player, null);
         bind("feast", player, null);
         bind("game", player, null);

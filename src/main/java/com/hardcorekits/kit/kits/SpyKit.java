@@ -36,8 +36,8 @@ public final class SpyKit implements Kit {
 
     @Override
     public String description() {
-        return "Your compass tracks its target live instead of snapshotting, reports exact "
-                + "coordinates and kits, announces nearby players, and identifies anyone you look at.";
+        return "Your compass tracks its target live, shows exact coordinates and kits, warns "
+                + "you when players are close, and names anyone you look at.";
     }
 
     @Override

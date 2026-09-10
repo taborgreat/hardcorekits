@@ -38,8 +38,8 @@ public final class FlashKit implements Kit {
 
     @Override
     public String description() {
-        return "Swing (left click) your redstone torch to teleport where you're looking. Costs "
-                + "Weakness (1s per 2 blocks) and a long cooldown.";
+        return "Left click with your redstone torch to teleport to wherever you are looking. "
+                + "It costs you Weakness, 1 second for every 2 blocks, and a long cooldown.";
     }
 
     @Override

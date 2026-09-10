@@ -42,7 +42,8 @@ public final class ThorKit implements Kit {
 
     @Override
     public String description() {
-        return "Right click a block with your axe to call lightning onto the top of that column.";
+        return "Right click a block with your axe and lightning strikes the top of that "
+                + "column.";
     }
 
     @Override

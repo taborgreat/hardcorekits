@@ -36,8 +36,8 @@ public final class SpidermanKit implements Kit {
 
     @Override
     public String description() {
-        return "Snowballs burst into cobwebs where they land. 3 throws, then a cooldown. "
-                + "A heavy Speed boost while you stand in webs.";
+        return "Your snowballs turn into cobwebs where they land. 3 throws, then a cooldown, "
+                + "and you get a big Speed boost while standing in webs.";
     }
 
     @Override

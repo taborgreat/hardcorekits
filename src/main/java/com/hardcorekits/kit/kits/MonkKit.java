@@ -36,8 +36,8 @@ public final class MonkKit implements Kit {
 
     @Override
     public String description() {
-        return "Right click a player with your blaze rod and their held item is shoved out "
-                + "of their hotbar into their inventory.";
+        return "Right click a player with your blaze rod and whatever they are holding gets "
+                + "knocked out of their hotbar into their inventory.";
     }
 
     @Override

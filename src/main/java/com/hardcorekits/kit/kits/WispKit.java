@@ -44,8 +44,9 @@ public final class WispKit implements Kit {
 
     @Override
     public String description() {
-        return "5 magma creams. Each spawns decoys in your armour and name that scatter. "
-                + "Killing one costs a heart and drops nothing.";
+        return "5 magma creams. Each one spawns decoys wearing your armor and name that "
+                + "scatter in every direction. Whoever kills a decoy loses a heart and gets "
+                + "nothing for it.";
     }
 
     @Override
