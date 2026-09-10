@@ -336,6 +336,26 @@ details.faq summary:hover .faq-q {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* The command list: one per line, the command in gold code ahead of what it does. */
+.commands {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+}
+
+.commands li {
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.commands li:last-child {
+  border-bottom: none;
+}
+
+.commands code {
+  margin-right: 10px;
+}
+
 /* The podium: gold, silver, bronze; everyone else in plain white. */
 .rank-1 td, .rank-1 a { color: #ffd83d; font-weight: bold; }
 .rank-2 td, .rank-2 a { color: #cfcfcf; font-weight: bold; }
