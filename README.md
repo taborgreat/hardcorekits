@@ -1,13 +1,5 @@
 # Hardcore Games
 
-The Paper plugin behind [hardcorekits.com](https://hardcorekits.com) — classic MCPVP-style
-Hardcore Games. One natural world, no lobby, no GUI. Pick a kit with `/kit`, drop near the
-middle of a 1000x1000 map, last one standing wins.
-
-Combat is pre-1.8 and mushroom soup is the heal, so fights come down to how fast you click
-through a stack of bowls. Kits are real abilities, not loadouts. A feast drops mid-match
-with the only diamond gear on the map. No Nether, no End.
-
 ## Running it
 
 Needs JDK 25 (Paper 26.2 won't run on older). Gradle comes with the wrapper.
