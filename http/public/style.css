@@ -121,6 +121,15 @@ button:hover {
   background: #4fc44f;
 }
 
+/* The server address, one small line under the nav. */
+.ip {
+  display: inline-block;
+  padding: 8px 18px;
+  margin: 0 auto 6px;
+  font-size: 0.85em;
+  color: #c8c8c8;
+}
+
 /* The live tracker wears the game's state: green and glowing while joinable, dimmed
    while a match has the server to itself. */
 #tracker b {

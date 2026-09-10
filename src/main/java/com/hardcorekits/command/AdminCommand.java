@@ -16,7 +16,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
-/** Backs /hg — the testing loop's whole control surface behind one command. */
+/**
+ * Backs /hg, the testing loop's whole control surface behind one command.
+ *
+ * <p>Every reply is purple and goes to the sender alone. The permission on the command
+ * (hardcoregames.admin) keeps it out of civilians' tab completion, and CommandGuard
+ * refuses it outright if one is typed anyway.
+ */
 public final class AdminCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUBCOMMANDS = List.of(
@@ -34,67 +40,67 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command,
                              @NotNull String label, String @NotNull [] args) {
         if (args.length == 0) {
-            Msg.info(sender, "Usage: /hg state | start | quickstart | skipinvuln | endgame"
+            Msg.admin(sender, "Usage: /hg state | start | quickstart | skipinvuln | endgame"
                     + " | reset | fake");
             return true;
         }
 
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "state" -> {
-                Msg.info(sender, "State: " + game.state() + " | alive: " + game.alive().size());
-                Msg.info(sender, "Players: " + game.participantCount() + "/"
+                Msg.admin(sender, "State: " + game.state() + " | alive: " + game.alive().size());
+                Msg.admin(sender, "Players: " + game.participantCount() + "/"
                         + game.config().minPlayers() + " needed to start"
                         + (game.lobbyWatcherRunning() ? "" : "  [LOBBY WATCHER STOPPED]"));
-                Msg.info(sender, "Chunks shaped: " + plugin.worldShaper().chunksShaped()
+                Msg.admin(sender, "Chunks shaped: " + plugin.worldShaper().chunksShaped()
                         + " | diamond ore stripped: " + plugin.worldShaper().diamondsStripped()
                         + " | mushrooms planted: " + plugin.worldShaper().mushroomsPlanted()
                         + " | pending: " + plugin.worldShaper().pending());
                 Location feastSite = game.feast().site();
-                Msg.info(sender, "Feast site: " + (feastSite == null
+                Msg.admin(sender, "Feast site: " + (feastSite == null
                         ? "not sited yet"
                         : feastSite.getBlockX() + ", " + feastSite.getBlockZ()));
-                Msg.info(sender, "Fake tributes: " + game.fakeCount());
-                Msg.info(sender, "World time: " + game.config().world().getTime()
+                Msg.admin(sender, "Fake tributes: " + game.fakeCount());
+                Msg.admin(sender, "World time: " + game.config().world().getTime()
                         + ". 6000 is midday, held during pre-game.");
             }
             case "fake" -> handleFake(sender, Arrays.copyOfRange(args, 1, args.length));
             case "quickstart" -> {
                 if (game.quickStart()) {
-                    Msg.success(sender, "Skipping the countdown — dropping now.");
+                    Msg.admin(sender, "Skipping the countdown. Dropping now.");
                 } else {
-                    Msg.error(sender, "A match is already underway: " + game.state() + ".");
+                    Msg.admin(sender, "A match is already underway: " + game.state() + ".");
                 }
             }
             case "skipinvuln" -> {
                 if (game.skipInvulnerability()) {
-                    Msg.success(sender, "Invincibility ended. PvP is live.");
+                    Msg.admin(sender, "Invincibility ended. PvP is live.");
                 } else {
-                    Msg.error(sender, "No grace period running: " + game.state() + ".");
+                    Msg.admin(sender, "No grace period running: " + game.state() + ".");
                 }
             }
             case "start" -> {
                 if (game.state() != GameState.WAITING) {
-                    Msg.error(sender, "Can only force-start from WAITING, currently "
+                    Msg.admin(sender, "Can only force-start from WAITING, currently "
                             + game.state() + ". Use /hg reset to return to WAITING.");
                     return true;
                 }
-                Msg.success(sender, "Force-starting the countdown.");
+                Msg.admin(sender, "Force-starting the countdown.");
                 game.startCountdown();
             }
             case "endgame" -> {
                 if (!game.endgame().forceBegin()) {
-                    Msg.error(sender, game.endgame().hasBegun()
+                    Msg.admin(sender, game.endgame().hasBegun()
                             ? "The End Game is already running."
                             : "Only during a live match, currently " + game.state() + ".");
                     return true;
                 }
-                Msg.success(sender, "Forcing the End Game.");
+                Msg.admin(sender, "Forcing the End Game.");
             }
             case "reset" -> {
-                Msg.success(sender, "Resetting the game.");
+                Msg.admin(sender, "Resetting the game.");
                 game.reset();
             }
-            default -> Msg.error(sender, "Unknown: /hg " + args[0] + ". Usage: /hg state"
+            default -> Msg.admin(sender, "Unknown: /hg " + args[0] + ". Usage: /hg state"
                     + " | start | quickstart | skipinvuln | endgame | reset | fake");
         }
         return true;
@@ -129,7 +135,7 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
      */
     private void handleFake(CommandSender sender, String[] args) {
         if (args.length == 0) {
-            Msg.info(sender, "Fake tributes: " + game.fakeCount()
+            Msg.admin(sender, "Fake tributes: " + game.fakeCount()
                     + ". Usage: /hg fake add <n> | kill <n> | clear");
             return;
         }
@@ -138,22 +144,22 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
             case "add" -> {
                 int count = parseCount(args, 1);
                 if (count < 1) {
-                    Msg.error(sender, "Usage: /hg fake add <n>");
+                    Msg.admin(sender, "Usage: /hg fake add <n>");
                     return;
                 }
-                Msg.success(sender, "Added " + count + " fake tributes, now "
+                Msg.admin(sender, "Added " + count + " fake tributes, now "
                         + game.addFakes(count) + ".");
             }
             case "kill" -> {
                 int count = parseCount(args, 1);
                 int killed = game.killFakes(Math.max(1, count));
-                Msg.success(sender, "Eliminated " + killed + " fake tributes.");
+                Msg.admin(sender, "Eliminated " + killed + " fake tributes.");
             }
             case "clear" -> {
                 game.clearFakes();
-                Msg.success(sender, "Cleared all fake tributes.");
+                Msg.admin(sender, "Cleared all fake tributes.");
             }
-            default -> Msg.error(sender, "Usage: /hg fake add <n> | kill <n> | clear");
+            default -> Msg.admin(sender, "Usage: /hg fake add <n> | kill <n> | clear");
         }
     }
 

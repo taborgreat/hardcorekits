@@ -14,6 +14,7 @@ import org.bukkit.command.CommandSender;
  *   <li><b>aqua</b> — kills and the remaining-player count</li>
  *   <li><b>dark aqua</b> — forfeits, so they are not mistaken for a kill</li>
  *   <li><b>yellow</b> — join/leave and compass tracking</li>
+ *   <li><b>dark purple</b> — admin command replies (/hg), seen only by whoever ran it</li>
  *   <li><b>white</b> — ordinary player chat (untouched)</li>
  * </ul>
  *
@@ -37,6 +38,14 @@ public final class Msg {
 
     public static void success(CommandSender to, String text) {
         to.sendMessage(Component.text(text, NamedTextColor.GREEN));
+    }
+
+    /**
+     * Admin replies: every line /hg says back, success or refusal alike, so admin output is
+     * one colour class. Goes to the sender only — never broadcast.
+     */
+    public static void admin(CommandSender to, String text) {
+        to.sendMessage(Component.text(text, NamedTextColor.DARK_PURPLE));
     }
 
     // ---------------------------------------------------------------- broadcasts
