@@ -96,13 +96,13 @@ public final class PlayerCommands implements CommandExecutor {
         if (sender.hasPermission("hardcoregames.admin")) {
             Msg.info(sender, "Admin:");
             for (String[] line : new String[][]{
-                    {"/hg start", "force-start the countdown"},
+                    {"/hg start", "force start the countdown"},
                     {"/hg quickstart", "skip the countdown, drop now"},
                     {"/hg skipinvuln", "end invincibility now"},
                     {"/hg endgame", "force the End Game now"},
                     {"/hg reset", "reset back to WAITING"},
                     {"/hg state", "print the game state"},
-                    {"/hg fake add|kill <n> | clear", "stand-in tributes for testing"}}) {
+                    {"/hg fake add|kill <n> | clear", "fake tributes for testing"}}) {
                 commandLine(sender, line[0], line[1]);
             }
         }

@@ -37,7 +37,7 @@ public final class EndermageKit implements Kit {
 
     @Override
     public String description() {
-        return "Place your portal to drag anyone directly above or below it to you. Recharges after use.";
+        return "Place your portal to drag anyone in the 5x5 column above or below it to you. Recharges after use.";
     }
 
     @Override

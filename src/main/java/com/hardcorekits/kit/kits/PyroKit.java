@@ -40,7 +40,7 @@ public final class PyroKit implements Kit {
 
     @Override
     public String description() {
-        return "Flint and steel, and 5 fire charges. Right-click a charge to throw it — "
+        return "Flint and steel, and 5 fire charges. Right click a charge to throw it, and "
                 + "everything near where it lands catches fire.";
     }
 

@@ -116,7 +116,7 @@ public final class SpyListener implements Listener {
         Location at = target.getLocation();
         spy.sendMessage(Component.text(label(target) + " is at "
                 + at.getBlockX() + ", " + at.getBlockY() + ", " + at.getBlockZ()
-                + " — compass locked on.", NamedTextColor.YELLOW));
+                + ". Compass locked on.", NamedTextColor.YELLOW));
     }
 
     /**

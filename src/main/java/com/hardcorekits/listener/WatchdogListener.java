@@ -123,7 +123,7 @@ public final class WatchdogListener implements Listener {
             int streak = hoverStreak.merge(player.getUniqueId(), 1, Integer::sum);
             if (streak >= threshold) {
                 hoverStreak.remove(player.getUniqueId());
-                flag(player, "fly", "hovering in mid-air for " + streak + "s at "
+                flag(player, "fly", "hovering in the air for " + streak + "s at "
                         + player.getLocation().getBlockX() + ", "
                         + player.getLocation().getBlockY() + ", "
                         + player.getLocation().getBlockZ());

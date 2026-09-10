@@ -158,6 +158,14 @@ endgame:
   # Seconds of immunity on arrival, so nobody is killed mid-teleport before they can react.
   arrival-immunity-seconds: 3
 
+# Elimination lines with a story to tell. {victim} and {killer} are filled in, colour is the
+# kill blue like every other elimination, and "x players remaining." follows on its own.
+messages:
+  # Someone logged out while an attacker was still on them. The attacker gets the kill.
+  combat-log-kill: "{victim} logged out to escape {killer}, and lost anyway."
+  # Same, but nobody had hit them recently enough to be credited.
+  combat-log: "{victim} logged out mid fight and was eliminated."
+
 # Combat is rolled back to 1.8 as far as the server side can take it. The attack-speed cap is
 # already gone (the recharge is made instant when a player is prepared), and these cover the
 # rest of what 1.9 changed and people still fight around.
@@ -168,6 +176,10 @@ combat:
   sprint-crits: true
   # 1.9 put a cooldown on ender pearls. 1.8 did not.
   no-pearl-cooldown: true
+  # A hit never breaks your sprint. Vanilla drops the attacker's sprint after every knockback
+  # hit and leaves it to the client to pick it back up, which is the modern "w-tap" dance;
+  # classic servers put the sprint straight back so you could keep running through a combo.
+  keep-sprint: true
   # Shields are a 1.9 item: the recipe is removed and one cannot be raised.
   disable-shields: true
   # Seconds between natural heals — the 1.8 rate. 1.9 heals about a heart a second off
@@ -176,10 +188,10 @@ combat:
   knockback:
     # 1.8 melee knockback. false keeps whatever the current version does.
     #
-    # ON, and verified by measurement rather than by reading signs: a stationary test victim
-    # parked beside an attacker is knocked ~2 blocks AWAY from the swing. Half the victim's
-    # existing motion carries into each hit (that is what makes combos chain), and the lift is
-    # capped at vertical-limit like 1.8 capped it.
+    # The 1.8 formula, applied the 1.8 way: each hit halves the victim's existing motion and
+    # adds the shove (that decay is what makes combos chain instead of compounding), the lift
+    # is capped at vertical-limit, and the sprint/enchant bonus is a separate addition along
+    # the attacker's facing, applied once.
     enabled: true
     # Straight-line push away from the attacker.
     horizontal: 0.4
@@ -188,6 +200,7 @@ combat:
     vertical: 0.4
     vertical-limit: 0.4
     # Added per knockback level along the attacker's facing, where sprinting is worth a level.
+    # 1.8's number, and play-tested to feel right at exactly that.
     extra-horizontal: 0.5
     extra-vertical: 0.1
 
@@ -305,9 +318,10 @@ kits:
     # Blast set off by a kill. 4.0 is vanilla TNT: anyone standing over the body when it goes
     # off is in real trouble. The Tank themselves never takes explosion damage.
     explosion-power: 4.0
-    # Off by default: with it on, every corpse craters the ground it fell on and the map ends
-    # up pocked with holes. The loot is protected either way — it is spawned after the blast.
-    break-blocks: false
+    # On: a kill craters the ground the body fell on, TNT-sized at 4.0. The map ends up
+    # pocked with holes, which is the point. The loot is protected either way — it is spawned
+    # after the blast.
+    break-blocks: true
   kaya:
     # Traps you start with. There is no cooldown — the limit is dirt and seeds, since a
     # crafting table turns those into more grass.
@@ -448,6 +462,10 @@ kits:
     # Upward part of the throw, so the victim arcs instead of skidding along the ground. This
     # is also what makes the fall damage on the far end worth anything.
     throw-lift: 0.6
+    # Ceiling on that lift once the charge has multiplied it. Without one a full charge aimed
+    # at the sky is 2.5x the lift straight up, and the fall alone kills: the throw is meant
+    # to send people across the valley, not into orbit. 0.8 is a hard landing, not a fatal one.
+    throw-lift-max: 0.8
     # Seconds after a throw before the same Hulk can pick someone up again. Without it a Hulk
     # can re-grab the instant they land and nobody ever touches the ground.
     cooldown-seconds: 5
@@ -456,7 +474,7 @@ kits:
     charge-seconds: 2.0
     # Throw strength at a full bar, as a multiple of the uncharged throw. The wind-up is the
     # counterweight: a Hulk crouching with someone on their shoulders is telling the whole
-    # fight what happens next.
+    # fight what happens next. Scales the push; the lift is capped by throw-lift-max.
     charged-multiplier: 2.5
   cannibal:
     # Drumsticks gained per hit landed on another player. Hits on mobs deliberately give
@@ -484,9 +502,10 @@ kits:
     # How far the footstep carries. 1.0 is a normal-range sound.
     step-sound-volume: 1.0
   endermage:
-    # Horizontal reach of the portal. Height is ignored, so anyone in the portal's column is
-    # dragged in no matter how far above or below they are — that is the anti-camping tool.
-    radius: 2.0
+    # Blocks out from the portal on each side, horizontally: 2 makes a 5x5 column. Height is
+    # ignored, so anyone in that column is dragged in no matter how far above or below they
+    # are — that is the anti-camping tool.
+    reach: 2
     # Grace given to the Endermage and everyone dragged, so nobody arrives mid-swing.
     immunity-seconds: 5
     # Seconds before the portal returns to the inventory. Only one can be in play at a time.

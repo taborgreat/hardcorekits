@@ -488,8 +488,8 @@ public final class GameManager {
         creditKill(killer);
 
         announceElimination(Msg.killLine(killer == null
-                ? name + " logged out while in combat and died."
-                : name + " logged out while in combat, courtesy of " + killer + "."));
+                ? config.combatLogMessage(name)
+                : config.combatLogKillMessage(name, killer)));
 
         checkWinCondition();
     }

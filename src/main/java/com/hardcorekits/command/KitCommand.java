@@ -79,7 +79,7 @@ public final class KitCommand implements CommandExecutor, TabCompleter {
             // Mid-match there is no start to hand the gear out at, so do it now. The old kit's
             // items are left alone rather than wiping an inventory mid-test.
             kit.apply(player);
-            player.sendMessage(Component.text("Switched mid-match as admin. Kit items given.",
+            player.sendMessage(Component.text("Switched during the match as admin. Kit items given.",
                     NamedTextColor.GRAY));
         }
         return true;

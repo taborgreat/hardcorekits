@@ -161,7 +161,7 @@ public final class FlashListener implements Listener {
         nextFlash.put(player.getUniqueId(), now + cooldown * 1000L);
         player.setCooldown(FlashKit.TORCH, cooldown * 20);
         CooldownBar.show(plugin, game, player, cooldown);
-        player.sendActionBar(Component.text("Flashed " + (int) distance + " blocks — Weakness for "
+        player.sendActionBar(Component.text("Flashed " + (int) distance + " blocks. Weakness for "
                 + weakness + "s.", NamedTextColor.LIGHT_PURPLE));
     }
 

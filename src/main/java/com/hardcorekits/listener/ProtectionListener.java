@@ -1,6 +1,7 @@
 package com.hardcorekits.listener;
 
 import com.hardcorekits.game.GameManager;
+import com.hardcorekits.util.Damage;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Item;
@@ -12,6 +13,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
@@ -60,9 +62,7 @@ public final class ProtectionListener implements Listener {
         if (!(event.getEntity() instanceof Item)) {
             return;
         }
-        EntityDamageEvent.DamageCause cause = event.getCause();
-        if (cause == EntityDamageEvent.DamageCause.BLOCK_EXPLOSION
-                || cause == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION) {
+        if (Damage.isExplosion(event)) {
             event.setCancelled(true);
         }
     }
@@ -131,7 +131,7 @@ public final class ProtectionListener implements Listener {
             event.setCancelled(true);
             // Action bar, not chat: this fires on every held-down placement attempt.
             player.sendActionBar(Component.text(
-                    "Build limit — nothing goes above y=" + game.config().maxBuildHeight() + ".",
+                    "Build limit. Nothing goes above y=" + game.config().maxBuildHeight() + ".",
                     NamedTextColor.RED));
         }
     }
@@ -159,6 +159,26 @@ public final class ProtectionListener implements Listener {
     public void onTrample(EntityChangeBlockEvent event) {
         if (game.state().isPreGame() && event.getEntity() instanceof Player player
                 && !player.hasPermission("hardcoregames.admin")) {
+            event.setCancelled(true);
+        }
+    }
+
+    /**
+     * Mobs only ever hunt a living tribute in a live match.
+     *
+     * <p>Pre-game the lobby crowd is scenery to the world as much as the world is scenery to
+     * them: a zombie that has to be kited around the centre while people pick kits is a
+     * nuisance, and invincibility makes the aggro pointless anyway. The same applies to anyone
+     * who is not in the alive set during a match — a mod in mod mode is not a target — and to
+     * everyone once a winner is being celebrated. Cancelling the target event makes the mob
+     * forget the player rather than merely miss, so it wanders off instead of following.
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void onTarget(EntityTargetEvent event) {
+        if (!(event.getTarget() instanceof Player player)) {
+            return;
+        }
+        if (!game.state().isLive() || !game.isAlive(player)) {
             event.setCancelled(true);
         }
     }

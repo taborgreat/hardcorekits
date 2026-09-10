@@ -2,7 +2,7 @@ name: HardcoreGames
 version: '${version}'
 main: com.hardcorekits.HardcoreGames
 api-version: '26.2'
-description: Command-driven Hardcore Games on a single natural-terrain world.
+description: Command driven Hardcore Games on a single natural terrain world.
 author: taborgreat
 
 commands:
@@ -32,7 +32,7 @@ commands:
     description: Match time and players remaining.
     usage: /game
   mod:
-    description: Toggle mod mode — invisible, flying, outside the game. Staff only.
+    description: Toggle mod mode, invisible and flying, outside the game. Staff only.
     usage: /mod
   mods:
     description: List staff, or appoint and dismiss roles below your own. Owners are ops.

@@ -8,6 +8,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.player.PlayerCommandSendEvent;
 
 import java.util.Locale;
 import java.util.Set;
@@ -18,6 +19,11 @@ import java.util.Set;
  *
  * <p>A whitelist rather than a blacklist on purpose: the set of commands the game means to
  * offer is small and known, while the set Paper ships grows with every version.
+ *
+ * <p>Two layers. {@link PlayerCommandSendEvent} trims the command tree the server sends a
+ * civilian, so tab completion and Bedrock's /help (Geyser builds it from that same tree)
+ * list only the game's commands. {@link PlayerCommandPreprocessEvent} then refuses anything
+ * typed by hand that slipped past, since a client can send any command it likes.
  */
 public final class CommandGuard implements Listener {
 
@@ -33,11 +39,19 @@ public final class CommandGuard implements Listener {
         this.staff = staff;
     }
 
+    /** Civilians are told about the whitelisted commands only, and never a namespaced form. */
+    @EventHandler
+    public void onCommandSend(PlayerCommandSendEvent event) {
+        if (isPrivileged(event.getPlayer())) {
+            return;
+        }
+        event.getCommands().removeIf(name -> !ALLOWED.contains(name.toLowerCase(Locale.ROOT)));
+    }
+
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onCommand(PlayerCommandPreprocessEvent event) {
         Player player = event.getPlayer();
-        if (player.isOp() || player.hasPermission("hardcoregames.admin")
-                || staff.isStaff(player)) {
+        if (isPrivileged(player)) {
             return;
         }
 
@@ -60,5 +74,10 @@ public final class CommandGuard implements Listener {
         player.sendMessage(Component.text("Unknown command. Try ", NamedTextColor.RED)
                 .append(Component.text("/help", NamedTextColor.AQUA))
                 .append(Component.text(".", NamedTextColor.RED)));
+    }
+
+    private boolean isPrivileged(Player player) {
+        return player.isOp() || player.hasPermission("hardcoregames.admin")
+                || staff.isStaff(player);
     }
 }

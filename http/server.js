@@ -34,13 +34,17 @@ const TYPES = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascrip
 // offline:true until the first successful poll, and again whenever the game server stops
 // answering — the site stays up either way and says so instead of erroring.
 let status = { offline: true };
+// The Minecraft version outlives the game server: the homepage keeps showing the last one
+// seen while the server is between maps.
+let version = null;
 
 async function poll() {
   try {
     const res = await fetch(`${MC_API}/api/status`, { signal: AbortSignal.timeout(5000) });
     status = { ...(await res.json()), offline: false, fetchedAt: Date.now() };
+    version = status.version || version;
   } catch {
-    status = { offline: true, fetchedAt: Date.now() };
+    status = { offline: true, version, fetchedAt: Date.now() };
   }
 }
 poll();

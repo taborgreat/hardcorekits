@@ -37,7 +37,7 @@ public final class GamblerKit implements Kit {
 
     @Override
     public String description() {
-        return "Place your button and press it for a random effect, good or bad — with a "
+        return "Place your button and press it for a random effect, good or bad, with a "
                 + "1/1000 shot at full diamond, or at dropping dead.";
     }
 

@@ -130,6 +130,34 @@ public final class LegacyCombatListener implements Listener {
     }
 
     /**
+     * A hit does not break the sprint.
+     *
+     * <p>Vanilla's attack code ends with {@code setSprinting(false)} on the attacker whenever
+     * the swing carried a knockback bonus, i.e. every sprint hit. The damage event is raised
+     * from inside that code, before the flag is cleared, so "was sprinting" is read here and
+     * put back a tick later, once vanilla has finished taking it away. The server's sprint flag
+     * reaches the client as entity data, so the client sees itself sprinting again without a
+     * fresh key press — the classic-server combo feel.
+     *
+     * <p>MONITOR: a cancelled hit (a Turtle's crouch, pre-game protection) was not a hit and
+     * changes nothing.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onSprintHit(EntityDamageByEntityEvent event) {
+        if (!game.config().keepSprint()
+                || event.getCause() != EntityDamageEvent.DamageCause.ENTITY_ATTACK
+                || !(event.getDamager() instanceof Player attacker)
+                || !attacker.isSprinting()) {
+            return;
+        }
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (attacker.isOnline() && !attacker.isSprinting()) {
+                attacker.setSprinting(true);
+            }
+        });
+    }
+
+    /**
      * The vanilla crit conditions, minus the 1.9 sprinting clause.
      *
      * <p>Vanilla also tests the ground flag, which is deprecated here because it is whatever
@@ -182,15 +210,19 @@ public final class LegacyCombatListener implements Listener {
     /**
      * Replaces melee knockback with the 1.8 calculation.
      *
-     * <p>The event's vector is replaced rather than the event being cancelled. That distinction
-     * matters: the server applies this knockback as part of resolving the hit, so cancelling and
-     * calling {@code setVelocity} instead writes a velocity that the rest of the hit immediately
-     * overwrites — which reads in game as knockback having been switched off entirely.
+     * <p>How Paper applies the event matters more than anything else here. The vector on the
+     * event is a <em>delta</em>: the server adds it to the victim's current velocity, and the
+     * default vector it arrives with is "vanilla's final velocity minus the current one" — the
+     * halving of existing motion is baked into it. So the vector set here has to be computed the
+     * same way, as final-minus-current. Setting a bare push instead keeps the victim's whole
+     * current speed and adds the shove on top, which is a running player being launched.
      *
-     * <p>What is set here is the <em>push</em>, pointing away from the attacker, not the
-     * resulting velocity: the server still halves the victim's existing motion and clamps the
-     * lift around it. On top of the base push goes the sprint/Knockback-enchant bonus, which
-     * follows the attacker's facing rather than the line between the two players.
+     * <p>A sprinting or Knockback-enchanted swing raises this event <em>twice</em>, with the
+     * same cause, attacker and victim, in the same tick: once from inside the hurt for the base
+     * shove, then again from the attack for the bonus. That is exactly 1.8's shape — knockBack
+     * in the hurt, then addVelocity for the bonus — so the first call gets the 1.8 base and the
+     * second gets the 1.8 bonus as a plain addition. Treating both as the full hit doubled every
+     * sprint hit.
      */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onKnockback(EntityKnockbackByEntityEvent event) {
@@ -202,46 +234,54 @@ public final class LegacyCombatListener implements Listener {
         }
         LivingEntity victim = event.getEntity();
 
-        // Away from the attacker. Vanilla passes (attacker - victim) into knockBack and then
-        // *subtracts* it, so the sign here has to be the other way round; getting that backwards
-        // drags the victim towards the swing instead of away from it.
+        double resisted = 1.0D - knockbackResistance(victim);
+        if (resisted <= 0.0D) {
+            return; // fully resistant, so vanilla's own handling is already correct
+        }
+
+        int tick = Bukkit.getCurrentTick();
+        Integer lastBase = baseShoveTick.get(victim.getUniqueId());
+        if (lastBase != null && lastBase == tick) {
+            // Second call this tick: the bonus. 1.8 added it straight onto the motion, along
+            // the attacker's facing, which from a yaw is (-sin, cos).
+            int level = knockbackLevel(attacker);
+            if (level <= 0) {
+                return;
+            }
+            double yaw = Math.toRadians(attacker.getLocation().getYaw());
+            double bonus = level * config.knockbackExtraHorizontal() * resisted;
+            event.setKnockback(new Vector(
+                    -Math.sin(yaw) * bonus,
+                    config.knockbackExtraVertical() * resisted,
+                    Math.cos(yaw) * bonus));
+            return;
+        }
+
+        // Away from the attacker.
         double dx = victim.getLocation().getX() - attacker.getLocation().getX();
         double dz = victim.getLocation().getZ() - attacker.getLocation().getZ();
         double separation = Math.sqrt(dx * dx + dz * dz);
         if (separation < MIN_SEPARATION) {
             return; // standing inside each other: no direction to push, leave vanilla to it
         }
+        baseShoveTick.put(victim.getUniqueId(), tick);
 
-        double resisted = 1.0D - knockbackResistance(victim);
-        if (resisted <= 0.0D) {
-            return; // fully resistant, so vanilla's own handling is already correct
-        }
-
-        // The PUSH only — no share of the victim's existing motion. The server already folds
-        // half the current velocity in as it applies this vector; adding another half here
-        // meant momentum never decayed between hits, and a running combo compounded every
-        // swing into the last one until chickens crossed the map. 1.8's combo feel comes from
-        // the server's own halving; this vector is just the shove.
+        // 1.8 knockBack, exactly: halve the motion, add the shove, lift capped.
+        Vector current = victim.getVelocity();
         double horizontal = config.knockbackHorizontal() * resisted;
-        double x = dx / separation * horizontal;
-        double z = dz / separation * horizontal;
-        double y = Math.min(config.knockbackVerticalLimit(),
-                config.knockbackVertical() * resisted);
+        double finalX = current.getX() / 2.0D + dx / separation * horizontal;
+        double finalZ = current.getZ() / 2.0D + dz / separation * horizontal;
+        double finalY = Math.min(config.knockbackVerticalLimit(),
+                current.getY() / 2.0D + config.knockbackVertical() * resisted);
 
-        int level = knockbackLevel(attacker);
-        if (level > 0) {
-            // Along the attacker's facing, which from a yaw is (-sin, cos) — the bonus pushes
-            // the victim the way the attacker is looking, not back past their own shoulder.
-            double yaw = Math.toRadians(attacker.getLocation().getYaw());
-            double bonus = level * config.knockbackExtraHorizontal() * resisted;
-            x += -Math.sin(yaw) * bonus;
-            z += Math.cos(yaw) * bonus;
-            y = Math.min(config.knockbackVerticalLimit() + config.knockbackExtraVertical(),
-                    y + config.knockbackExtraVertical() * resisted);
-        }
-
-        event.setKnockback(new Vector(x, y, z));
+        event.setKnockback(new Vector(
+                finalX - current.getX(),
+                finalY - current.getY(),
+                finalZ - current.getZ()));
     }
+
+    /** Victim -> tick of their last base shove, so the bonus call in the same tick is known. */
+    private final java.util.Map<java.util.UUID, Integer> baseShoveTick = new java.util.HashMap<>();
 
     /** Knockback enchant on the swung item, with sprinting worth a level of its own. */
     private int knockbackLevel(Player attacker) {

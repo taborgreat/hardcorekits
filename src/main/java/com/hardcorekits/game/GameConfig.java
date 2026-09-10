@@ -129,6 +129,7 @@ public final class GameConfig {
     private final double wispKillerDamage;
     private final double hulkThrowPower;
     private final double hulkThrowLift;
+    private final double hulkThrowLiftMax;
     private final int hulkCooldownSeconds;
     private final double hulkChargeSeconds;
     private final double hulkChargedMultiplier;
@@ -142,7 +143,7 @@ public final class GameConfig {
     private final int berserkerPlayerSeconds;
     private final double anchorStepDistance;
     private final double anchorStepVolume;
-    private final double endermageRadius;
+    private final int endermageReach;
     private final int endermageImmunitySeconds;
     private final int endermageCooldownSeconds;
     private final int endgameMinutes;
@@ -174,6 +175,9 @@ public final class GameConfig {
     private final boolean disableSweep;
     private final boolean sprintCrits;
     private final boolean noPearlCooldown;
+    private final boolean keepSprint;
+    private final String combatLogKillMessage;
+    private final String combatLogMessage;
     private final boolean disableShields;
     private final int regenIntervalSeconds;
     private final boolean legacyKnockback;
@@ -335,6 +339,7 @@ public final class GameConfig {
         this.wispKillerDamage = c.getDouble("kits.wisp.killer-damage", 2.0D);
         this.hulkThrowPower = c.getDouble("kits.hulk.throw-power", 1.6D);
         this.hulkThrowLift = c.getDouble("kits.hulk.throw-lift", 0.6D);
+        this.hulkThrowLiftMax = c.getDouble("kits.hulk.throw-lift-max", 0.8D);
         this.hulkCooldownSeconds = c.getInt("kits.hulk.cooldown-seconds", 5);
         this.hulkChargeSeconds = c.getDouble("kits.hulk.charge-seconds", 2.0D);
         this.hulkChargedMultiplier = c.getDouble("kits.hulk.charged-multiplier", 2.5D);
@@ -349,7 +354,7 @@ public final class GameConfig {
         this.berserkerPlayerSeconds = c.getInt("kits.berserker.player-kill.seconds", 15);
         this.anchorStepDistance = c.getDouble("kits.anchor.step-sound-distance", 2.5D);
         this.anchorStepVolume = c.getDouble("kits.anchor.step-sound-volume", 1.0D);
-        this.endermageRadius = c.getDouble("kits.endermage.radius", 2.0D);
+        this.endermageReach = c.getInt("kits.endermage.reach", 2);
         this.endermageImmunitySeconds = c.getInt("kits.endermage.immunity-seconds", 5);
         this.endermageCooldownSeconds = c.getInt("kits.endermage.cooldown-seconds", 30);
         this.endgameMinutes = c.getInt("endgame.minutes", 60);
@@ -381,6 +386,11 @@ public final class GameConfig {
         this.disableSweep = c.getBoolean("combat.disable-sweep", true);
         this.sprintCrits = c.getBoolean("combat.sprint-crits", true);
         this.noPearlCooldown = c.getBoolean("combat.no-pearl-cooldown", true);
+        this.keepSprint = c.getBoolean("combat.keep-sprint", true);
+        this.combatLogKillMessage = c.getString("messages.combat-log-kill",
+                "{victim} logged out to escape {killer}, and lost anyway.");
+        this.combatLogMessage = c.getString("messages.combat-log",
+                "{victim} logged out mid fight and was eliminated.");
         this.disableShields = c.getBoolean("combat.disable-shields", true);
         this.regenIntervalSeconds = c.getInt("combat.regen-interval-seconds", 4);
         this.legacyKnockback = c.getBoolean("combat.knockback.enabled", true);
@@ -992,6 +1002,11 @@ public final class GameConfig {
         return hulkThrowLift;
     }
 
+    /** Ceiling on the lift after the charge multiplier, so no throw is a fatal launch. */
+    public double hulkThrowLiftMax() {
+        return hulkThrowLiftMax;
+    }
+
     /** Seconds after a throw before the same Hulk can grab again. */
     public int hulkCooldownSeconds() {
         return hulkCooldownSeconds;
@@ -1053,8 +1068,9 @@ public final class GameConfig {
     }
 
     /** Horizontal reach of an Endermage portal. Height is ignored entirely. */
-    public double endermageRadius() {
-        return endermageRadius;
+    /** Blocks out from the portal on each side; 2 is a 5x5 column. */
+    public int endermageReach() {
+        return endermageReach;
     }
 
     /** Grace given to the Endermage and everyone dragged, so nobody lands mid-swing. */
@@ -1207,6 +1223,21 @@ public final class GameConfig {
     /** Whether a sprinting player can still land a critical hit, as in 1.8. */
     public boolean sprintCrits() {
         return sprintCrits;
+    }
+
+    /** Whether a melee hit leaves the attacker sprinting. */
+    public boolean keepSprint() {
+        return keepSprint;
+    }
+
+    /** Elimination line for logging out under attack, with {victim} and {killer} filled in. */
+    public String combatLogKillMessage(String victim, String killer) {
+        return combatLogKillMessage.replace("{victim}", victim).replace("{killer}", killer);
+    }
+
+    /** Elimination line for logging out mid fight with nobody to credit. */
+    public String combatLogMessage(String victim) {
+        return combatLogMessage.replace("{victim}", victim);
     }
 
     public boolean noPearlCooldown() {

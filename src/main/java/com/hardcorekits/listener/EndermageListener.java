@@ -23,8 +23,9 @@ import java.util.List;
 /**
  * The Endermage's portal.
  *
- * <p>Reach is measured horizontally only — anyone standing in the portal's column is pulled in
- * regardless of how far above or below they are, which is what makes it answer bedrock camping.
+ * <p>Reach is a square column of blocks around the portal, measured horizontally only — anyone
+ * standing in it is pulled in regardless of how far above or below they are, which is what
+ * makes it answer bedrock camping.
  *
  * <p>The portal block is cosmetic: it appears for a moment, then vanishes. The real cooldown is
  * the item itself, which leaves the inventory on use and is handed back later, so an Endermage
@@ -74,7 +75,9 @@ public final class EndermageListener implements Listener {
 
     /** Pulls everyone in the portal's column — the caster included — to the portal. */
     private void dragIntoPortal(Player caster, Location portal) {
-        double radius = game.config().endermageRadius();
+        // A square column of blocks centred on the portal: reach 2 is 5x5. Measured from the
+        // block centre, so the half-block on each side of the outer ring is in the column.
+        double half = game.config().endermageReach() + 0.5D;
         int immunity = game.config().endermageImmunitySeconds();
 
         List<Player> dragged = new ArrayList<>();
@@ -85,7 +88,7 @@ public final class EndermageListener implements Listener {
             // Horizontal distance only: height is deliberately ignored.
             double dx = target.getLocation().getX() - portal.getX();
             double dz = target.getLocation().getZ() - portal.getZ();
-            if ((dx * dx) + (dz * dz) > radius * radius) {
+            if (Math.abs(dx) > half || Math.abs(dz) > half) {
                 continue;
             }
             if (!target.equals(caster)) {
@@ -99,7 +102,7 @@ public final class EndermageListener implements Listener {
             target.getWorld().playSound(portal, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0F, 1.0F);
         }
 
-        // The caster may have been out of their own radius; they always come along.
+        // The caster may have been outside their own column; they always come along.
         if (!dragged.contains(caster)) {
             caster.teleport(portal);
             game.grantImmunity(caster, immunity);

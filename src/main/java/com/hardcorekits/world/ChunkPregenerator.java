@@ -122,7 +122,7 @@ public final class ChunkPregenerator {
                 finishedAnnounced = true;
                 long seconds = (System.currentTimeMillis() - startedMillis) / 1000L;
                 plugin.getLogger().info("Pre-generation complete: " + total + " chunks in "
-                        + seconds + "s. No terrain generates mid-match now.");
+                        + seconds + "s. No terrain generates during the match now.");
             }
             return;
         }

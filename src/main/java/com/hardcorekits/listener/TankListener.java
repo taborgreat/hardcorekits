@@ -4,6 +4,7 @@ import com.hardcorekits.HardcoreGames;
 import com.hardcorekits.game.GameManager;
 import com.hardcorekits.kit.KitRegistry;
 import com.hardcorekits.kit.kits.TankKit;
+import com.hardcorekits.util.Damage;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -82,9 +83,7 @@ public final class TankListener implements Listener {
         if (!kits.hasKit(player, TankKit.ID)) {
             return false;
         }
-        EntityDamageEvent.DamageCause cause = event.getCause();
-        boolean explosion = cause == EntityDamageEvent.DamageCause.BLOCK_EXPLOSION
-                || cause == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION;
+        boolean explosion = Damage.isExplosion(event);
         if (!explosion && !detonating.contains(player.getUniqueId())) {
             return false;
         }

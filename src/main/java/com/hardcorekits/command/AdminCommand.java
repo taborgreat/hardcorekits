@@ -61,7 +61,7 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
                         : feastSite.getBlockX() + ", " + feastSite.getBlockZ()));
                 Msg.admin(sender, "Fake tributes: " + game.fakeCount());
                 Msg.admin(sender, "World time: " + game.config().world().getTime()
-                        + ". 6000 is midday, held during pre-game.");
+                        + ". 6000 is midday, held before the game.");
             }
             case "fake" -> handleFake(sender, Arrays.copyOfRange(args, 1, args.length));
             case "quickstart" -> {
@@ -80,11 +80,11 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
             }
             case "start" -> {
                 if (game.state() != GameState.WAITING) {
-                    Msg.admin(sender, "Can only force-start from WAITING, currently "
+                    Msg.admin(sender, "Can only force start from WAITING, currently "
                             + game.state() + ". Use /hg reset to return to WAITING.");
                     return true;
                 }
-                Msg.admin(sender, "Force-starting the countdown.");
+                Msg.admin(sender, "Force starting the countdown.");
                 game.startCountdown();
             }
             case "endgame" -> {

@@ -4,6 +4,7 @@ import com.hardcorekits.HardcoreGames;
 import com.hardcorekits.game.GameManager;
 import com.hardcorekits.kit.KitRegistry;
 import com.hardcorekits.kit.kits.HulkKit;
+import com.hardcorekits.util.CooldownBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -129,7 +130,7 @@ public final class HulkListener implements Listener {
 
         hulk.getWorld().playSound(hulk.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 1.0F, 1.2F);
         hulk.sendActionBar(Component.text("You have " + victim.getName()
-                + ". Crouch to charge, left-click to throw.", NamedTextColor.GREEN));
+                + ". Crouch to charge, left click to throw.", NamedTextColor.GREEN));
         startWindup(hulk);
         if (victim instanceof Player prey) {
             prey.sendMessage(Component.text(hulk.getName() + " has picked you up. ",
@@ -159,8 +160,12 @@ public final class HulkListener implements Listener {
                 throwPlayer(hulk, victim);
             }
         }
-        nextGrab.put(hulk.getUniqueId(),
-                System.currentTimeMillis() + game.config().hulkCooldownSeconds() * 1000L);
+        int cooldown = game.config().hulkCooldownSeconds();
+        nextGrab.put(hulk.getUniqueId(), System.currentTimeMillis() + cooldown * 1000L);
+        // Catching breath drains on the XP bar like every other kit timer, then the kill
+        // count comes back. Shown after the throw's endWindup, which would otherwise have the
+        // last word on the bar.
+        CooldownBar.show(plugin, game, hulk, cooldown);
     }
 
     /**
@@ -174,13 +179,17 @@ public final class HulkListener implements Listener {
         thrown.add(victim.getUniqueId());
         victim.leaveVehicle();
 
-        // Base throw at zero charge, up to charged-multiplier at a full bar.
+        // Base throw at zero charge, up to charged-multiplier at a full bar. The charge scales
+        // the push; the lift is capped, or a charged throw aimed at the sky is a fatal fall
+        // with no valley crossed.
         double wound = charge.getOrDefault(hulk.getUniqueId(), 0.0F);
         double factor = 1.0D + (game.config().hulkChargedMultiplier() - 1.0D) * wound;
+        double lift = Math.min(game.config().hulkThrowLiftMax(),
+                game.config().hulkThrowLift() * factor);
 
         Vector fling = hulk.getEyeLocation().getDirection().normalize()
                 .multiply(game.config().hulkThrowPower() * factor)
-                .setY(game.config().hulkThrowLift() * factor);
+                .setY(lift);
         endWindup(hulk);
 
         Bukkit.getScheduler().runTask(plugin, () -> {

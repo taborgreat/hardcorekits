@@ -3,6 +3,7 @@ package com.hardcorekits.listener;
 import com.hardcorekits.HardcoreGames;
 import com.hardcorekits.game.GameManager;
 import com.hardcorekits.kit.Kit;
+import com.hardcorekits.util.Damage;
 import com.hardcorekits.util.Msg;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -130,6 +131,10 @@ public final class DeathListener implements Listener {
         String byMob = mobKill(last);
         if (byMob != null) {
             return byMob;
+        }
+        // Asked before the switch: a sourceless blast reports CUSTOM, not an explosion cause.
+        if (Damage.isExplosion(last)) {
+            return "was blown up";
         }
 
         return switch (last.getCause()) {

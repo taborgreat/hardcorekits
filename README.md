@@ -36,6 +36,9 @@ crontab's `@reboot` line runs it at boot, so after a restart `tmux attach` is al
 down cleanly (world saved, loop ended). `deploy/` holds the root half, nginx + cert +
 firewall, applied once with `sudo deploy/install.sh` (safe to re-run).
 
+- `~/hgserver/server.properties` has `spawn-protection=0`. Paper's default of 16 blocks makes
+  the map centre unbreakable for anyone who is not op, which on this server is every
+  civilian; Bedrock players just noticed first. Untracked, so set it again on a new box.
 - Game server lives in `~/hgserver` (Paper + Geyser + Floodgate + the built plugin), cycled by
   `tools/run-loop.sh`, which reinstalls `build/libs/*.jar` between maps, so `./gradlew build`
   ships at the next game with no restart. Don't `./gradlew runServer` while it's up: both

@@ -45,7 +45,7 @@ public final class KangarooKit implements Kit {
 
     @Override
     public String description() {
-        return "A rocket that never runs out: right-click to hurl yourself through the air. Landing a hit "
+        return "A rocket that never runs out: right click to hurl yourself through the air. Landing a hit "
                 + "on someone switches off your fall damage for eight seconds.";
     }
 
