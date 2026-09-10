@@ -39,6 +39,9 @@ firewall, applied once with `sudo deploy/install.sh` (safe to re-run).
 - `~/hgserver/server.properties` has `spawn-protection=0`. Paper's default of 16 blocks makes
   the map centre unbreakable for anyone who is not op, which on this server is every
   civilian; Bedrock players just noticed first. Untracked, so set it again on a new box.
+- `~/hgserver/plugins/Geyser-Spigot/config.yml` is hand-tuned and untracked too: `auth-type:
+  floodgate`, `emotes-enabled: false`, `cooldown-type: disabled` (the server is 1.8 combat, so
+  Geyser's fake cooldown crosshair lies), `server-name: Hardcore Kits`.
 - Game server lives in `~/hgserver` (Paper + Geyser + Floodgate + the built plugin), cycled by
   `tools/run-loop.sh`, which reinstalls `build/libs/*.jar` between maps, so `./gradlew build`
   ships at the next game with no restart. Don't `./gradlew runServer` while it's up: both

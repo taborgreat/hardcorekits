@@ -6,20 +6,23 @@
   <title>Minecraft Hardcore Games</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/style.css?v=4">
 </head>
 <body>
 <main>
+  <p class="ip">Minecraft IP: <code>hardcorekits.com</code><span id="mcver"></span></p>
+
   <h1>Minecraft Hardcore Games</h1>
   <nav><a href="/">Home</a><a href="/stats.html">Stats</a><a href="/kits.html">Kits</a><a href="/faq.html">FAQ</a></nav>
 
-  <p class="ip">Minecraft IP: <code>hardcorekits.com</code><span id="mcver"></span></p>
+  <section id="status-panel" class="panel live">
+    <h2>Game Status</h2>
+    <div id="tracker">Loading…</div>
+  </section>
 
-  <h2>Status</h2>
-  <p id="tracker" class="live">Loading…</p>
-
-  <h2>About</h2>
-  <p class="about">
+  <section class="panel">
+    <h2>About</h2>
+    <div class="about">
     Hardcore Games for Java and Bedrock.<br><br>
     Pick a kit with <code>/kit &lt;name&gt;</code>
     before The Game starts.<br><br>
@@ -34,14 +37,16 @@
     Nether, Diamond, and The End are disabled, and the world is reset after each match.<br><br>
     <br><br>
     Choose your kit wisely, prepare your strats, and good luck on winning.
-  </p>
+    </div>
+  </section>
 
   <script>
     const PHASES = {
       WAITING: 'Waiting for players. JOIN NOW!',
       COUNTDOWN: 'Starting. JOIN NOW!',
-      INVULNERABLE: 'Match just started (grace period)',
-      RUNNING: 'Match in progress',
+      INVULNERABLE: 'Match just started, everyone still invincible',
+      ACTIVE: 'Match in progress',
+      FEAST: 'Match in progress, the feast is out',
       ENDING: 'Match ending, new game soon',
       RESETTING: 'Server restarting for a fresh map, try again in a minute',
     };
@@ -50,17 +55,18 @@
 
     async function refresh() {
       const el = document.getElementById('tracker');
+      const panel = document.getElementById('status-panel');
       try {
         const s = await (await fetch('/api/status')).json();
         if (s.version) {
           document.getElementById('mcver').textContent = ' \u00b7 ' + s.version;
         }
         if (s.offline) {
-          el.className = 'live live-busy';
+          panel.className = 'panel live live-busy';
           el.innerHTML = 'Server is restarting or offline, check back in a minute.';
           return;
         }
-        el.className = s.joinable ? 'live live-join' : 'live live-busy';
+        panel.className = s.joinable ? 'panel live live-join' : 'panel live live-busy';
         let html = line('<b>' + (PHASES[s.state] || s.state) + '</b>');
         html += line('Players online: ' + s.online + ' / ' + s.maxPlayers);
         if (s.joinable) {
@@ -71,7 +77,7 @@
         }
         el.innerHTML = html;
       } catch {
-        el.className = 'live live-busy';
+        panel.className = 'panel live live-busy';
         el.innerHTML = 'Could not reach the site backend.';
       }
     }
