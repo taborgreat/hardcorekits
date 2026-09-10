@@ -90,8 +90,16 @@ public final class WorldShaper implements Listener {
     private void shape(Chunk chunk) {
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
+                Block floor = chunk.getBlock(x, FLOOR_Y, z);
+                // A generated structure occasionally leaves a container — a hopper, a chest —
+                // exactly at floor level, its block entity still pending promotion from the
+                // chunk's NBT. Swap the block first and that promotion later fails loudly
+                // ("Invalid block entity ... got Block{minecraft:bedrock}"). Reading the
+                // state promotes it NOW, while block and entity still agree, so the swap
+                // retires both cleanly.
+                floor.getState();
                 // Physics updates are pointless here and expensive, hence setType(..., false).
-                chunk.getBlock(x, FLOOR_Y, z).setType(Material.BEDROCK, false);
+                floor.setType(Material.BEDROCK, false);
 
                 // Only scan above the new floor — anything below it is sealed off anyway.
                 for (int y = FLOOR_Y + 1; y <= MAX_SCAN_Y; y++) {

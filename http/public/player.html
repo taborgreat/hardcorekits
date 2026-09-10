@@ -58,9 +58,9 @@
 
       let html = '<div class="player-header">';
       html += '<div class="player-identity">'
+            + '<div class="player-name">' + p.name + '</div>'
             + '<img class="skin" src="https://mc-heads.net/body/' + encodeURIComponent(p.name)
             + '/140" alt="" onerror="this.style.display=\'none\'">'
-            + '<div class="player-name">' + p.name + '</div>'
             + '</div>';
       html += '<div class="player-totals">'
             + statRow('Wins', p.wins)

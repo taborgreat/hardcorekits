@@ -217,17 +217,16 @@ public final class LegacyCombatListener implements Listener {
             return; // fully resistant, so vanilla's own handling is already correct
         }
 
-        // The event's vector is the final applied knockback (measured: a cow parked east of
-        // the attacker flew further east, ~1.9 blocks per bare hit). 1.8 folded half the
-        // victim's existing motion into it, which is what lets consecutive hits chain into a
-        // combo instead of each one starting from rest — so that half is folded in here too,
-        // with the lift capped the way 1.8 capped it.
-        Vector carried = victim.getVelocity().multiply(0.5D);
+        // The PUSH only — no share of the victim's existing motion. The server already folds
+        // half the current velocity in as it applies this vector; adding another half here
+        // meant momentum never decayed between hits, and a running combo compounded every
+        // swing into the last one until chickens crossed the map. 1.8's combo feel comes from
+        // the server's own halving; this vector is just the shove.
         double horizontal = config.knockbackHorizontal() * resisted;
-        double x = carried.getX() + dx / separation * horizontal;
-        double z = carried.getZ() + dz / separation * horizontal;
+        double x = dx / separation * horizontal;
+        double z = dz / separation * horizontal;
         double y = Math.min(config.knockbackVerticalLimit(),
-                carried.getY() + config.knockbackVertical() * resisted);
+                config.knockbackVertical() * resisted);
 
         int level = knockbackLevel(attacker);
         if (level > 0) {

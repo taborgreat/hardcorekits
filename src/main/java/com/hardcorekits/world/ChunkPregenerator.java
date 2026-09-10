@@ -37,6 +37,8 @@ public final class ChunkPregenerator {
     private int lastLoggedDecile;
     private long startedMillis;
     private boolean finishedAnnounced;
+    /** Set on plugin disable. Volatile: completion callbacks race the shutdown. */
+    private volatile boolean stopped;
 
     public ChunkPregenerator(HardcoreGames plugin, GameManager game) {
         this.plugin = plugin;
@@ -81,8 +83,18 @@ public final class ChunkPregenerator {
                 : config.pregenParallel());
     }
 
+    /**
+     * The sweep must die WITH the plugin. During shutdown every in-flight future completes
+     * exceptionally, and a callback that pumps another request feeds fresh work into a chunk
+     * system that is trying to halt — which is a server that stands at "Awaiting termination
+     * of worker pool" for the full 60s timeout, twice, on every restart.
+     */
+    public void stop() {
+        stopped = true;
+    }
+
     private void pump() {
-        while (cursor < order.size() && inFlight < width()) {
+        while (!stopped && plugin.isEnabled() && cursor < order.size() && inFlight < width()) {
             int[] coords = order.get(cursor++);
             inFlight++;
             // gen=true: generate if missing. The callback lands on the main thread and pulls
@@ -90,6 +102,9 @@ public final class ChunkPregenerator {
             world.getChunkAtAsync(coords[0], coords[1], true).whenComplete((chunk, error) -> {
                 inFlight--;
                 done++;
+                if (stopped) {
+                    return; // the server is going down; not another word, not another chunk
+                }
                 if (error != null) {
                     plugin.getLogger().warning("Pre-generation failed at chunk " + coords[0]
                             + "," + coords[1] + ": " + error.getMessage());

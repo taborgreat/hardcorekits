@@ -24,8 +24,8 @@ import java.util.logging.Logger;
  * appointed by name at the console before they have ever logged in, and this server runs a
  * fixed, small staff list — the rename-attack surface is not worth the ceremony.
  *
- * <p>Owners listed in config.yml are grafted on top at load and can never be dismissed from
- * in game; the file only ever holds what was appointed at runtime.
+ * <p>Owners are never in here at all: being a server operator IS being an owner, so /op and
+ * /deop at the console are the whole owner lifecycle. This file only holds mods and trainees.
  */
 public final class RolesStore {
 
@@ -52,27 +52,18 @@ public final class RolesStore {
     private final List<Proposal> pending = new ArrayList<>();
     /** Last proposal number handed out. Never reused, so old ids stay unambiguous. */
     private int lastId;
-    /** From config — permanent, not written to the file, not dismissable. */
-    private final List<String> configOwners = new ArrayList<>();
 
-    public RolesStore(File dataFolder, Logger logger, List<String> owners) {
+    public RolesStore(File dataFolder, Logger logger) {
         this.file = new File(dataFolder, "roles.json");
         this.logger = logger;
-        for (String owner : owners) {
-            configOwners.add(owner.toLowerCase(Locale.ROOT));
-        }
         load();
     }
 
     // ---------------------------------------------------------------- roles
 
-    /** The player's role, or null for a civilian. */
+    /** The player's appointed role, or null. Ops are owners upstream of this lookup. */
     public Role roleOf(String name) {
-        String key = name.toLowerCase(Locale.ROOT);
-        if (configOwners.contains(key)) {
-            return Role.OWNER;
-        }
-        return roles.get(key);
+        return roles.get(name.toLowerCase(Locale.ROOT));
     }
 
     public boolean isStaff(String name) {
@@ -84,7 +75,7 @@ public final class RolesStore {
         save();
     }
 
-    /** @return false if they were not appointed staff (config owners cannot be dismissed) */
+    /** @return false if they held no appointed role */
     public boolean dismiss(String name) {
         boolean removed = roles.remove(name.toLowerCase(Locale.ROOT)) != null;
         if (removed) {
@@ -93,13 +84,9 @@ public final class RolesStore {
         return removed;
     }
 
-    /** Appointed staff plus config owners, for /mods list. */
+    /** Every appointed mod and trainee, for /mods list. Owners are the ops list. */
     public Map<String, Role> all() {
-        Map<String, Role> out = new ConcurrentHashMap<>(roles);
-        for (String owner : configOwners) {
-            out.put(owner, Role.OWNER);
-        }
-        return out;
+        return new ConcurrentHashMap<>(roles);
     }
 
     // ---------------------------------------------------------------- pending bans

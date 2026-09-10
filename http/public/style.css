@@ -171,7 +171,8 @@ button:hover {
 
 .player-identity .skin {
   image-rendering: auto;
-  margin-bottom: 10px;
+  /* The name sits above the render now, so the gap belongs on top of it. */
+  margin-top: 12px;
 }
 
 .player-name {

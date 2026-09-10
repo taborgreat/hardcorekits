@@ -630,13 +630,6 @@ worldgen:
   # economy and the map is centred on a swamp, so the swamp should feed it. 0 turns it off.
   swamp-mushrooms-per-chunk: 6
 
-# The staff ladder. Owners appoint mods and trainees in game with /mods add; those live in
-# roles.json in the data folder and survive world rotation. The names listed HERE are grafted
-# on top as permanent owners — they cannot be dismissed from in game, only by editing this.
-staff:
-  owners:
-    - taborgreat
-
 # How long before invincibility ends the door closes on late joiners. People can connect and
 # be dropped into a running match (kitless) right up to this cutoff; the buffer exists so
 # nobody materialises into the world in the same breath PvP goes live.

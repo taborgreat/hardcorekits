@@ -87,6 +87,7 @@ public final class HardcoreGames extends JavaPlugin {
     private WorldShaper worldShaper;
     private StatusServer statusServer;
     private StaffManager staff;
+    private ChunkPregenerator pregen;
 
     @Override
     public void onEnable() {
@@ -120,10 +121,10 @@ public final class HardcoreGames extends JavaPlugin {
 
         game = new GameManager(this, kits, config, stats);
 
-        // The staff layer sits over the game: roles survive world rotation like the stats
-        // do, and config owners are permanent whatever roles.json says.
-        RolesStore roles = new RolesStore(getDataFolder(), getLogger(),
-                config.staffOwners());
+        // The staff layer sits over the game: mod and trainee roles survive world rotation
+        // like the stats do. Owners are simply the server's ops — /op and /deop at the
+        // console are the whole owner lifecycle.
+        RolesStore roles = new RolesStore(getDataFolder(), getLogger());
         staff = new StaffManager(this, game, roles);
         game.setStaff(staff);
         game.onReset(staff::clearModMode);
@@ -151,7 +152,8 @@ public final class HardcoreGames extends JavaPlugin {
         // Generate the whole play area while the lobby fills — worldgen is the most
         // expensive thing scattered players can trigger, and this takes it off the table.
         // Centre-out, and it narrows to a trickle the moment a match goes live.
-        new ChunkPregenerator(this, game).start();
+        pregen = new ChunkPregenerator(this, game);
+        pregen.start();
         if (config.webEnabled()) {
             statusServer = new StatusServer(this, game);
             statusServer.start(config.webBind(), config.webPort());
@@ -161,6 +163,11 @@ public final class HardcoreGames extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        // First thing out the door: the pregen sweep must stop issuing chunk requests, or
+        // the halting chunk system waits its full 60s timeouts on work we keep creating.
+        if (pregen != null) {
+            pregen.stop();
+        }
         if (statusServer != null) {
             statusServer.stop();
             statusServer = null;

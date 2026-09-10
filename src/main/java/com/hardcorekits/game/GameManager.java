@@ -427,7 +427,9 @@ public final class GameManager {
         eliminated.add(uuid);
         combat.forget(uuid);
 
-        announceElimination(Msg.forfeitLine(
+        // Kill-blue like every other elimination, and no "x remaining" tail — a timeout is
+        // quiet bookkeeping, not a fight worth re-counting the field over.
+        Bukkit.broadcast(Msg.killLine(
                 name + " was disconnected for too long, and has forfeit!"));
         checkWinCondition();
     }

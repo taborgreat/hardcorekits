@@ -3,8 +3,8 @@ package com.hardcorekits.staff;
 /**
  * The staff ladder. OWNER appoints; MOD enforces; TRAINEE proposes.
  *
- * <p>Owners are not appointed in game at all — being a server operator (/op at the console)
- * or a name in config {@code staff.owners} is what makes an owner.
+ * <p>Owners are not appointed in game at all — being a server operator is what makes an
+ * owner, so /op and /deop at the console are the whole owner lifecycle.
  */
 public enum Role {
     OWNER,

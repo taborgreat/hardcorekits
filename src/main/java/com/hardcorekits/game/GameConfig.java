@@ -227,7 +227,6 @@ public final class GameConfig {
     private final int webPort;
     private final boolean worldgenNoOceans;
     private final int swampMushroomsPerChunk;
-    private final List<String> staffOwners;
     private final int lateJoinCutoffSeconds;
     private final double borderHardWallMargin;
     private final double borderForcefieldWarningDistance;
@@ -435,7 +434,6 @@ public final class GameConfig {
         this.webPort = c.getInt("web.port", 8085);
         this.worldgenNoOceans = c.getBoolean("worldgen.no-oceans", true);
         this.swampMushroomsPerChunk = c.getInt("worldgen.swamp-mushrooms-per-chunk", 6);
-        this.staffOwners = List.copyOf(c.getStringList("staff.owners"));
         this.lateJoinCutoffSeconds = c.getInt("late-join-cutoff-seconds", 5);
         this.borderHardWallMargin = c.getDouble("border.hard-wall-margin", 20.0D);
         this.borderForcefieldWarningDistance =
@@ -1470,11 +1468,6 @@ public final class GameConfig {
 
     public boolean freshWorldOnRestart() {
         return freshWorldOnRestart;
-    }
-
-    /** Names that are the owner no matter what roles.json says. Cannot be dismissed in game. */
-    public List<String> staffOwners() {
-        return staffOwners;
     }
 
     /**
