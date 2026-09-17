@@ -17,6 +17,7 @@ import com.hardcorekits.listener.AdvancementListener;
 import com.hardcorekits.listener.AnchorListener;
 import com.hardcorekits.listener.BarbarianListener;
 import com.hardcorekits.listener.BeastmasterListener;
+import com.hardcorekits.listener.HorsemanListener;
 import com.hardcorekits.listener.BerserkerListener;
 import com.hardcorekits.listener.CannibalListener;
 import com.hardcorekits.listener.CombatListener;
@@ -132,7 +133,7 @@ public final class HardcoreGames extends JavaPlugin {
         // Kit abilities stay locked until invincibility wears off. One gate, so every kit,
         // including any written later, is covered without touching its listener.
         kits.setAbilityGate(() -> game.state().isPvpEnabled());
-        worldShaper = new WorldShaper(this, config.world().getName(),
+        worldShaper = new WorldShaper(this, config.world().getName(), config.forestMushroomsPerChunk(),
                 config.swampMushroomsPerChunk());
 
         // server.properties is rewritten on shutdown by the world rotator and the run/ copy is
@@ -209,6 +210,7 @@ public final class HardcoreGames extends JavaPlugin {
     private void registerCommands() {
         AdminCommand admin = new AdminCommand(this, game);
         bind("hg", admin, admin);
+        bind("announce", admin, null);
 
         KitCommand kitCommand = new KitCommand(game, kits);
         bind("kit", kitCommand, kitCommand);
@@ -220,6 +222,7 @@ public final class HardcoreGames extends JavaPlugin {
         bind("msg", player, null);
         bind("feast", player, null);
         bind("game", player, null);
+        bind("spawn", player, null);
 
         StaffCommand staffCommand = new StaffCommand(staff);
         bind("mod", staffCommand, null);
@@ -245,6 +248,8 @@ public final class HardcoreGames extends JavaPlugin {
         DemomanListener demoman = new DemomanListener(this, game, kits);
         // Mines are per-match state, so drop them whenever the game resets.
         game.onReset(demoman::clearTraps);
+        HorsemanListener horseman = new HorsemanListener(this, game, kits);
+        game.onReset(horseman::clear);
 
         // Any kit timer still on an XP bar dies with the match it belonged to.
         game.onReset(CooldownBar::clearAll);
@@ -365,7 +370,7 @@ public final class HardcoreGames extends JavaPlugin {
                 new ConnectionListener(game, staff),
                 new CommandGuard(staff),
                 watchdog,
-                new ProtectionListener(game),
+                new ProtectionListener(this, game),
                 new DeathListener(this, game, stomperListener, souls),
                 new CompassListener(game),
                 new CombatListener(game),
@@ -384,6 +389,7 @@ public final class HardcoreGames extends JavaPlugin {
                 thor,
                 kaya,
                 new BeastmasterListener(game, kits),
+                horseman,
                 berserker,
                 new CannibalListener(game, kits),
                 new SnailListener(game, kits),

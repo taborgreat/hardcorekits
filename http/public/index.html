@@ -6,20 +6,20 @@
     <title>Minecraft Hardcore Games</title>
     <meta
       name="description"
-      content="Hardcore Games, a fan tribute to the classic MC-HG Minecraft server of 2012 to 2015. Pick a kit, survive the feast and the death match, last one standing wins. Java and Bedrock. Play at hardcorekits.com."
+      content="Hardcore Games, a fan tribute to the classic MC-HG Minecraft server of 2012 to 2015. Pick a kit, survive the feast and the death match, last one standing wins. Java and Bedrock. Play at hardcorepvp.com."
     />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
     />
-    <link rel="stylesheet" href="/style.css?v=69" />
+    <link rel="stylesheet" href="/style.css?v=70" />
   </head>
   <body class="swords">
     <main>
       <p class="ip">
         IP:
-        <code id="ip-copy" title="Click to copy">hardcorekits.com</code
+        <code id="ip-copy" title="Click to copy">hardcorepvp.com</code
         ><span id="mcver"></span>
       </p>
       <h1>Minecraft Hardcore Games</h1>
@@ -31,6 +31,11 @@
           ><a href="/kits.html">Kits</a><a href="/faq.html">FAQ</a>
         </nav>
       </header>
+      <a class="event-banner" id="event-banner" href="/news.html#tournament" data-until="2026-09-13">
+        <span class="event-date">9/13/2026</span>
+        <span class="event-title">Sunday Tournament Details</span>
+      </a>
+
 
       <section id="status-panel" class="panel live">
         <h2>Game State</h2>
@@ -118,17 +123,21 @@
         refresh();
         setInterval(refresh, 30000);
 
+        // The event banner retires itself the day after its date.
+        const banner = document.getElementById("event-banner");
+        if (banner && new Date() > new Date(banner.dataset.until + "T23:59:59")) banner.hidden = true;
+
         // Click the address to copy it. The text says "Copied!" for a moment, then comes back.
         const ip = document.getElementById("ip-copy");
         ip.addEventListener("click", async () => {
           try {
-            await navigator.clipboard.writeText("hardcorekits.com");
+            await navigator.clipboard.writeText("hardcorepvp.com");
           } catch {
             return; // no clipboard access here, the text is still selectable
           }
           ip.textContent = "Copied!";
           setTimeout(() => {
-            ip.textContent = "hardcorekits.com";
+            ip.textContent = "hardcorepvp.com";
           }, 1200);
         });
       </script>

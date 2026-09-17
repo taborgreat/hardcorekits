@@ -11,6 +11,8 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.block.Block;
+import org.bukkit.entity.AbstractHorse;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -73,6 +75,24 @@ public final class EndermageListener implements Listener {
         rechargeLater(caster);
     }
 
+    /**
+     * Teleports a player, and if they were on a horse the horse comes too and they land on
+     * it. Teleporting a player ejects them from any vehicle, so the horse is moved alongside
+     * and the rider put back a tick later, once both have arrived.
+     */
+    private void dragWithMount(Player player, Location portal) {
+        Entity vehicle = player.getVehicle();
+        player.teleport(portal);
+        if (vehicle instanceof AbstractHorse horse && horse.isValid()) {
+            horse.teleport(portal);
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                if (horse.isValid() && player.isOnline()) {
+                    horse.addPassenger(player);
+                }
+            });
+        }
+    }
+
     /** Pulls everyone in the portal's column — the caster included — to the portal. */
     private void dragIntoPortal(Player caster, Location portal) {
         // A square column of blocks centred on the portal: reach 2 is 5x5. Measured from the
@@ -97,14 +117,14 @@ public final class EndermageListener implements Listener {
             // Heard at both ends: the spot they vanished from, and the portal they land on.
             target.getWorld().playSound(target.getLocation(),
                     Sound.ENTITY_ENDERMAN_TELEPORT, 1.0F, 0.8F);
-            target.teleport(portal);
+            dragWithMount(target, portal);
             game.grantImmunity(target, immunity);
             target.getWorld().playSound(portal, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0F, 1.0F);
         }
 
         // The caster may have been outside their own column; they always come along.
         if (!dragged.contains(caster)) {
-            caster.teleport(portal);
+            dragWithMount(caster, portal);
             game.grantImmunity(caster, immunity);
         }
 

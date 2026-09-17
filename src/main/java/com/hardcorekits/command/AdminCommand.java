@@ -26,7 +26,11 @@ import java.util.Locale;
 public final class AdminCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUBCOMMANDS = List.of(
-            "state", "start", "quickstart", "skipinvuln", "endgame", "reset", "fake");
+            "state", "start", "hold", "release", "quickstart", "skipinvuln", "endgame", "reset",
+            "fake");
+
+    private static final String USAGE = "Usage: /hg state | start [minutes] | hold | release"
+            + " | quickstart | skipinvuln | endgame | reset | fake";
 
     private final HardcoreGames plugin;
     private final GameManager game;
@@ -39,9 +43,12 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command,
                              @NotNull String label, String @NotNull [] args) {
+        if (command.getName().equalsIgnoreCase("announce")) {
+            announce(sender, args);
+            return true;
+        }
         if (args.length == 0) {
-            Msg.admin(sender, "Usage: /hg state | start | quickstart | skipinvuln | endgame"
-                    + " | reset | fake");
+            Msg.admin(sender, USAGE);
             return true;
         }
 
@@ -50,6 +57,7 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
                 Msg.admin(sender, "State: " + game.state() + " | alive: " + game.alive().size());
                 Msg.admin(sender, "Players: " + game.participantCount() + "/"
                         + game.config().minPlayers() + " needed to start"
+                        + (game.lobbyHeld() ? "  [HELD BY HOST]" : "")
                         + (game.lobbyWatcherRunning() ? "" : "  [LOBBY WATCHER STOPPED]"));
                 Msg.admin(sender, "Chunks shaped: " + plugin.worldShaper().chunksShaped()
                         + " | diamond ore stripped: " + plugin.worldShaper().diamondsStripped()
@@ -80,12 +88,27 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
             }
             case "start" -> {
                 if (game.state() != GameState.WAITING) {
-                    Msg.admin(sender, "Can only force start from WAITING, currently "
+                    Msg.admin(sender, "Can only start from WAITING, currently "
                             + game.state() + ". Use /hg reset to return to WAITING.");
                     return true;
                 }
-                Msg.admin(sender, "Force starting the countdown.");
-                game.startCountdown();
+                // Five minutes unless told otherwise, and exactly that: a host's countdown is
+                // not cut short by a full lobby.
+                int minutes = args.length > 1 ? parseCount(args, 1) : 5;
+                if (minutes < 1) {
+                    Msg.admin(sender, "Usage: /hg start [minutes]");
+                    return true;
+                }
+                Msg.admin(sender, "Starting a " + minutes + " minute countdown.");
+                game.startCountdown(minutes * 60);
+            }
+            case "hold" -> {
+                game.holdLobby();
+                Msg.admin(sender, "Lobby held. Nothing starts until /hg release or /hg start.");
+            }
+            case "release" -> {
+                game.releaseLobby();
+                Msg.admin(sender, "Lobby released. It starts itself again when full enough.");
             }
             case "endgame" -> {
                 if (!game.endgame().forceBegin()) {
@@ -100,8 +123,7 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
                 Msg.admin(sender, "Resetting the game.");
                 game.reset();
             }
-            default -> Msg.admin(sender, "Unknown: /hg " + args[0] + ". Usage: /hg state"
-                    + " | start | quickstart | skipinvuln | endgame | reset | fake");
+            default -> Msg.admin(sender, "Unknown: /hg " + args[0] + ". " + USAGE);
         }
         return true;
     }
@@ -124,6 +146,15 @@ public final class AdminCommand implements CommandExecutor, TabCompleter {
             }
         }
         return options;
+    }
+
+    /** A line from the host to everyone, in the timer red, exactly as typed. */
+    private void announce(CommandSender sender, String[] args) {
+        if (args.length == 0) {
+            Msg.admin(sender, "Usage: /announce <message>");
+            return;
+        }
+        Msg.timer(String.join(" ", args));
     }
 
     /**

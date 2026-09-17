@@ -15,7 +15,9 @@ import org.bukkit.event.world.ChunkLoadEvent;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -43,17 +45,43 @@ public final class WorldShaper implements Listener {
     private final HardcoreGames plugin;
     private final String worldName;
     private final int swampMushroomsPerChunk;
+    private final int forestMushroomsPerChunk;
     private final Set<Long> processed = new HashSet<>();
+    /**
+     * Natural surface height per column, recorded the first time a chunk is shaped, before
+     * any player could have built there. The build limit reads it to allow a few blocks on a
+     * mountain top without allowing a tower from the valley floor. 256 shorts a chunk.
+     */
+    private final Map<Long, short[]> naturalSurface = new HashMap<>();
     private final Deque<Chunk> queue = new ArrayDeque<>();
 
     private int diamondsStripped;
     private int chunksShaped;
     private int mushroomsPlanted;
 
-    public WorldShaper(HardcoreGames plugin, String worldName, int swampMushroomsPerChunk) {
+    public WorldShaper(HardcoreGames plugin, String worldName, int forestMushroomsPerChunk,
+                       int swampMushroomsPerChunk) {
         this.plugin = plugin;
         this.worldName = worldName;
+        this.forestMushroomsPerChunk = forestMushroomsPerChunk;
         this.swampMushroomsPerChunk = swampMushroomsPerChunk;
+    }
+
+    /** Biomes whose floors are shaded enough for mushrooms to take. */
+    private static final Set<Biome> FOREST_FLOORS = Set.of(
+            Biome.FOREST, Biome.FLOWER_FOREST, Biome.BIRCH_FOREST, Biome.OLD_GROWTH_BIRCH_FOREST,
+            Biome.DARK_FOREST, Biome.TAIGA, Biome.OLD_GROWTH_PINE_TAIGA,
+            Biome.OLD_GROWTH_SPRUCE_TAIGA, Biome.JUNGLE, Biome.BAMBOO_JUNGLE, Biome.SPARSE_JUNGLE);
+
+    private static final Set<Biome> SWAMPS = Set.of(Biome.SWAMP, Biome.MANGROVE_SWAMP);
+
+    /**
+     * The ground height recorded for a column when its chunk was shaped, or -1 if that chunk
+     * has not been shaped (in which case the caller falls back to the flat cap).
+     */
+    public int naturalSurface(int x, int z) {
+        short[] heights = naturalSurface.get(Chunk.getChunkKey(x >> 4, z >> 4));
+        return heights == null ? -1 : heights[((z & 15) << 4) | (x & 15)];
     }
 
     public void start() {
@@ -88,6 +116,7 @@ public final class WorldShaper implements Listener {
     }
 
     private void shape(Chunk chunk) {
+        recordSurface(chunk);
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 Block floor = chunk.getBlock(x, FLOOR_Y, z);
@@ -120,9 +149,24 @@ public final class WorldShaper implements Listener {
         sprinkleMushrooms(chunk);
     }
 
+    /** Snapshot of the natural ground before anything is built on it. */
+    private void recordSurface(Chunk chunk) {
+        World world = chunk.getWorld();
+        int baseX = chunk.getX() << 4;
+        int baseZ = chunk.getZ() << 4;
+        short[] heights = new short[256];
+        for (int z = 0; z < 16; z++) {
+            for (int x = 0; x < 16; x++) {
+                heights[(z << 4) | x] = (short) world.getHighestBlockYAt(baseX + x, baseZ + z,
+                        HeightMap.MOTION_BLOCKING_NO_LEAVES);
+            }
+        }
+        naturalSurface.put(chunk.getChunkKey(), heights);
+    }
+
     /**
      * Extra mushrooms for swamp chunks — soup is the healing economy, so the swamps this map
-     * is centred on should actually feed it.
+     * is centred on should actually feed it. Forest floors get a smaller share too.
      *
      * <p>Per column, not per chunk biome: chunks straddle biome borders, and only the swampy
      * columns should get anything. Placement obeys the block's own survival rule — mushrooms
@@ -131,7 +175,12 @@ public final class WorldShaper implements Listener {
      * attempts, not a quota.
      */
     private void sprinkleMushrooms(Chunk chunk) {
-        if (swampMushroomsPerChunk <= 0) {
+        sprinkle(chunk, swampMushroomsPerChunk, SWAMPS);
+        sprinkle(chunk, forestMushroomsPerChunk, FOREST_FLOORS);
+    }
+
+    private void sprinkle(Chunk chunk, int attempts, Set<Biome> biomes) {
+        if (attempts <= 0) {
             return;
         }
         ThreadLocalRandom random = ThreadLocalRandom.current();
@@ -139,14 +188,13 @@ public final class WorldShaper implements Listener {
         int baseX = chunk.getX() << 4;
         int baseZ = chunk.getZ() << 4;
 
-        for (int i = 0; i < swampMushroomsPerChunk; i++) {
+        for (int i = 0; i < attempts; i++) {
             // NO_LEAVES, or the "surface" under a swamp oak is its canopy — and under the
             // canopy is the only shade where a mushroom survives daylight in the first place.
             Block surface = world.getHighestBlockAt(
                     baseX + random.nextInt(16), baseZ + random.nextInt(16),
                     HeightMap.MOTION_BLOCKING_NO_LEAVES);
-            Biome biome = surface.getBiome();
-            if (biome != Biome.SWAMP && biome != Biome.MANGROVE_SWAMP) {
+            if (!biomes.contains(surface.getBiome())) {
                 continue;
             }
             Material ground = surface.getType();

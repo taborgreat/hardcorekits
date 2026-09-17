@@ -151,6 +151,46 @@ p, table, form, .panel {
   image-rendering: pixelated;
 }
 
+/* A temporary event banner above Game State: gold bordered, pixel date, one line. */
+.event-banner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  max-width: 780px;
+  margin: 14px auto;
+  padding: 12px 22px;
+  background: rgba(0, 0, 0, 0.86);
+  border: 2px solid #ffd83d;
+  color: #ffffff;
+  text-decoration: none;
+  font-family: "Press Start 2P", "Courier New", monospace;
+  font-size: 0.85rem;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.event-banner:hover {
+  color: #ffffff;
+  background: rgba(20, 20, 0, 0.9);
+}
+
+.event-banner .event-date {
+  color: #ffd83d;
+}
+
+.event-banner .event-title {
+  color: #7dff7d;
+}
+
+@media (max-width: 600px) {
+  .event-banner {
+    font-size: 0.65rem;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+}
+
 /* The status lines are short and few: keep them close together, a size down. */
 #tracker {
   line-height: 1.45;

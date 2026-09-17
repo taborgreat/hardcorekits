@@ -47,10 +47,12 @@ firewall, applied once with `sudo deploy/install.sh` (safe to re-run).
   ships at the next game with no restart. Don't `./gradlew runServer` while it's up: both
   want 25565.
 - Website is `http/server.js` on 127.0.0.1:8080 reading stats from `~/hgserver`, fronted by
-  nginx (`deploy/nginx-hardcorekits.com.conf`) with a certbot-managed cert.
+  nginx with certbot-managed certs. `hardcorepvp.com` is the main domain
+  (`deploy/nginx-hardcorepvp.com.conf`); `hardcorekits.com` is kept and 301s to it
+  (install.sh rewrites its certbot-managed block). The Minecraft server answers on both.
 - JDK 25 is a user-level Temurin tarball in `~/.jdks`; `JAVA_HOME` is set in `~/.bashrc` and
   `~/.gradle/gradle.properties` points the toolchain at it. Nothing Java was apt-installed.
-- DNS: `A hardcorekits.com` and `A www` both to this machine's public IP. 25565 is the
+- DNS: `A` records for the apex and `www` of both domains to this machine's public IP. 25565 is the
   default Java port so no SRV record is needed; Bedrock players enter port 19132 by hand.
   The router must forward 80/tcp, 443/tcp, 25565/tcp and 19132/udp here.
 

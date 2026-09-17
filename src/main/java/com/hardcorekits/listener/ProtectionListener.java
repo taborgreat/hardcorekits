@@ -1,5 +1,6 @@
 package com.hardcorekits.listener;
 
+import com.hardcorekits.HardcoreGames;
 import com.hardcorekits.game.GameManager;
 import com.hardcorekits.util.Damage;
 import net.kyori.adventure.text.Component;
@@ -24,9 +25,11 @@ import org.bukkit.event.player.PlayerPortalEvent;
  */
 public final class ProtectionListener implements Listener {
 
+    private final HardcoreGames plugin;
     private final GameManager game;
 
-    public ProtectionListener(GameManager game) {
+    public ProtectionListener(HardcoreGames plugin, GameManager game) {
+        this.plugin = plugin;
         this.game = game;
     }
 
@@ -127,11 +130,22 @@ public final class ProtectionListener implements Listener {
         // block at a time. The cost is that the tallest natural peaks are already at the
         // ceiling, which is the right way round — high terrain is an advantage you have to
         // walk to, not one you carry a stack of dirt to.
-        if (event.getBlock().getY() > game.config().maxBuildHeight()) {
+        //
+        // The one bend: terrain generates taller than the ceiling in places, and a mountain
+        // top should be usable ground. Where the natural surface (recorded at generation,
+        // before anyone built) is already above the cap, a few blocks over it are allowed.
+        int y = event.getBlock().getY();
+        int cap = game.config().maxBuildHeight();
+        int ground = plugin.worldShaper().naturalSurface(event.getBlock().getX(), event.getBlock().getZ());
+        if (ground > cap) {
+            cap = ground + game.config().buildAboveTerrain();
+        }
+        if (y > cap) {
             event.setCancelled(true);
             // Action bar, not chat: this fires on every held-down placement attempt.
             player.sendActionBar(Component.text(
-                    "Build limit. Nothing goes above y=" + game.config().maxBuildHeight() + ".",
+                    "Build limit. Nothing above y=" + game.config().maxBuildHeight()
+                            + ", or " + game.config().buildAboveTerrain() + " blocks over high ground.",
                     NamedTextColor.RED));
         }
     }

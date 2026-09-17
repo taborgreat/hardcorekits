@@ -113,6 +113,11 @@ compass-min-distance: 25
 # End Game box).
 build:
   max-height: 140
+  # Terrain is taller than that in places, and a mountain top should still be usable. Where
+  # the natural ground is already above max-height, building is allowed this many blocks
+  # over it: enough to shelter, not enough to tower. The ground height is recorded per column
+  # as the map is generated, before anyone has placed a block, so builds never raise it.
+  above-terrain: 6
 
 feast:
   # Minutes into the match when the chests appear.
@@ -595,6 +600,17 @@ kits:
     # Most a crouching victim takes. 4.0 = two hearts.
     sneak-cap: 4.0
 
+  horseman:
+    # Hay bales in the starting kit. Feeding one to the horse heals it a good chunk.
+    hay-bales: 2
+    # The horse. Vanilla horses roll these at random; this is a good one, not a freak.
+    # Movement speed: vanilla range is 0.1125 to 0.3375, a player sprints at about 0.13.
+    speed: 0.3
+    # Jump strength: vanilla range 0.4 to 1.0; 0.7 clears about three blocks.
+    jump-strength: 0.7
+    # Health: vanilla range 15 to 30. 30 is fifteen hearts.
+    health: 30.0
+
 # Soup. Drinking is instant — no eat animation — and heals before it feeds.
 soup:
   # Health restored while below full. 7.0 = three and a half hearts. Overflow is lost.
@@ -649,7 +665,10 @@ worldgen:
   # Extra mushrooms planted per swamp chunk as chunks load — attempts, not a quota: only
   # shaded, valid spots take one, exactly where vanilla mushrooms survive. Soup is the healing
   # economy and the map is centred on a swamp, so the swamp should feed it. 0 turns it off.
-  swamp-mushrooms-per-chunk: 6
+  swamp-mushrooms-per-chunk: 12
+  # The same for forest floors: dark forests, taigas, jungles, birch and oak woods. Fewer,
+  # and the shade rule still applies, so open ground gets nothing. 0 turns it off.
+  forest-mushrooms-per-chunk: 4
 
 # How long before invincibility ends the door closes on late joiners. People can connect and
 # be dropped into a running match (kitless) right up to this cutoff; the buffer exists so

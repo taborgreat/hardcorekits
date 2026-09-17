@@ -72,7 +72,12 @@ public final class GameConfig {
     private final int feastChests;
     private final int feastSpawnRadius;
     private final int maxBuildHeight;
+    private final int buildAboveTerrain;
     private final int demomanMines;
+    private final int horsemanHayBales;
+    private final double horsemanSpeed;
+    private final double horsemanJumpStrength;
+    private final double horsemanHealth;
     private final double demomanExplosionPower;
     private final boolean demomanBreaksBlocks;
     private final double turtleCrouchDamage;
@@ -232,6 +237,7 @@ public final class GameConfig {
     private final int webPort;
     private final boolean worldgenNoOceans;
     private final int swampMushroomsPerChunk;
+    private final int forestMushroomsPerChunk;
     private final int lateJoinCutoffSeconds;
     private final double borderHardWallMargin;
     private final double borderForcefieldWarningDistance;
@@ -283,7 +289,12 @@ public final class GameConfig {
         this.feastChests = c.getInt("feast.chests", 12);
         this.feastSpawnRadius = c.getInt("feast.spawn-radius", 200);
         this.maxBuildHeight = c.getInt("build.max-height", 140);
+        this.buildAboveTerrain = c.getInt("build.above-terrain", 6);
         this.demomanMines = c.getInt("kits.demoman.mines", 2);
+        this.horsemanHayBales = c.getInt("kits.horseman.hay-bales", 2);
+        this.horsemanSpeed = c.getDouble("kits.horseman.speed", 0.3D);
+        this.horsemanJumpStrength = c.getDouble("kits.horseman.jump-strength", 0.7D);
+        this.horsemanHealth = c.getDouble("kits.horseman.health", 30.0D);
         this.demomanExplosionPower = c.getDouble("kits.demoman.explosion-power", 4.0D);
         this.demomanBreaksBlocks = c.getBoolean("kits.demoman.break-blocks", true);
         this.turtleCrouchDamage = c.getDouble("kits.turtle.crouch-damage", 2.0D);
@@ -446,6 +457,7 @@ public final class GameConfig {
         this.webPort = c.getInt("web.port", 8085);
         this.worldgenNoOceans = c.getBoolean("worldgen.no-oceans", true);
         this.swampMushroomsPerChunk = c.getInt("worldgen.swamp-mushrooms-per-chunk", 6);
+        this.forestMushroomsPerChunk = c.getInt("worldgen.forest-mushrooms-per-chunk", 4);
         this.lateJoinCutoffSeconds = c.getInt("late-join-cutoff-seconds", 5);
         this.borderHardWallMargin = c.getDouble("border.hard-wall-margin", 20.0D);
         this.borderForcefieldWarningDistance =
@@ -730,8 +742,29 @@ public final class GameConfig {
         return maxBuildHeight;
     }
 
+    /** Blocks allowed over the natural ground where that ground is already above the cap. */
+    public int buildAboveTerrain() {
+        return buildAboveTerrain;
+    }
+
     /** Blast strength of a Demoman mine. Vanilla TNT is 4.0. */
     /** Gravel and pressure plates in the starting kit, one mine per pair. */
+    public int horsemanHayBales() {
+        return horsemanHayBales;
+    }
+
+    public double horsemanSpeed() {
+        return horsemanSpeed;
+    }
+
+    public double horsemanJumpStrength() {
+        return horsemanJumpStrength;
+    }
+
+    public double horsemanHealth() {
+        return horsemanHealth;
+    }
+
     public int demomanMines() {
         return demomanMines;
     }
@@ -1502,6 +1535,10 @@ public final class GameConfig {
     /** Extra mushrooms planted per swamp chunk by the WorldShaper. 0 turns it off. */
     public int swampMushroomsPerChunk() {
         return swampMushroomsPerChunk;
+    }
+
+    public int forestMushroomsPerChunk() {
+        return forestMushroomsPerChunk;
     }
 
     public boolean freshWorldOnRestart() {

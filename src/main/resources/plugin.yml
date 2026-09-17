@@ -28,6 +28,9 @@ commands:
   game:
     description: Match time and players remaining.
     usage: /game
+  spawn:
+    description: Back to the centre if you are stuck. Before the game starts only.
+    usage: /spawn
   mod:
     description: Toggle mod mode, invisible and flying, outside the game. Staff only.
     usage: /mod
@@ -45,7 +48,11 @@ commands:
     usage: /propose ban <player> <reason...> | approve <id> | deny <id>
   hg:
     description: Admin control surface for the game loop.
-    usage: /hg state | start | quickstart | skipinvuln | endgame | reset | fake
+    usage: /hg state | start [minutes] | hold | release | quickstart | skipinvuln | endgame | reset | fake
+    permission: hardcoregames.admin
+  announce:
+    description: A server message to everyone, in red, exactly as typed.
+    usage: /announce <message>
     permission: hardcoregames.admin
 
 permissions:

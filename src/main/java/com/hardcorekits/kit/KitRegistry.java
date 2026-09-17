@@ -4,6 +4,7 @@ import com.hardcorekits.game.GameConfig;
 import com.hardcorekits.kit.kits.AnchorKit;
 import com.hardcorekits.kit.kits.BarbarianKit;
 import com.hardcorekits.kit.kits.BeastmasterKit;
+import com.hardcorekits.kit.kits.HorsemanKit;
 import com.hardcorekits.kit.kits.BerserkerKit;
 import com.hardcorekits.kit.kits.CannibalKit;
 import com.hardcorekits.kit.kits.CookiemonsterKit;
@@ -98,6 +99,7 @@ public final class KitRegistry {
         register(new SpyKit());
         register(new CookiemonsterKit());
         register(new JellyfishKit());
+        register(new HorsemanKit(config));
         register(new NinjaKit());
         register(new LauncherKit(config));
         register(new FiremanKit());

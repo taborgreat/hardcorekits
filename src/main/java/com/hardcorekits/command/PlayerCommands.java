@@ -18,7 +18,7 @@ import java.util.Arrays;
 import java.util.Locale;
 
 /**
- * The civilian command set: /help, /stats, /msg, /feast, /game.
+ * The civilian command set: /help, /stats, /msg, /feast, /game, /spawn.
  *
  * <p>There is no /kills: the XP level is the match kill count, and /stats says it too.
  *
@@ -44,6 +44,7 @@ public final class PlayerCommands implements CommandExecutor {
             case "msg" -> whisper(sender, args);
             case "feast" -> feast(sender);
             case "game" -> gameInfo(sender);
+            case "spawn" -> spawn(sender);
             default -> {
                 return false;
             }
@@ -72,7 +73,8 @@ public final class PlayerCommands implements CommandExecutor {
                 {"/stats [player]", "lifetime stats, plus your kills this match"},
                 {"/msg <player> <text>", "whisper privately, also /tell and /whisper"},
                 {"/feast", "the feast coordinates, once it has appeared"},
-                {"/game", "match time and players remaining"}}) {
+                {"/game", "match time and players remaining"},
+                {"/spawn", "back to the centre if you get stuck, lobby only"}}) {
             commandLine(sender, line[0], line[1]);
         }
 
@@ -96,7 +98,10 @@ public final class PlayerCommands implements CommandExecutor {
         if (sender.hasPermission("hardcoregames.admin")) {
             Msg.info(sender, "Admin:");
             for (String[] line : new String[][]{
-                    {"/hg start", "force start the countdown"},
+                    {"/hg start [minutes]", "start the countdown, five minutes unless told otherwise"},
+                    {"/hg hold", "hold the lobby: nothing starts until released or started"},
+                    {"/hg release", "lift the hold"},
+                    {"/announce <text>", "a server message to everyone, in red"},
                     {"/hg quickstart", "skip the countdown, drop now"},
                     {"/hg skipinvuln", "end invincibility now"},
                     {"/hg endgame", "force the End Game now"},
@@ -170,6 +175,23 @@ public final class PlayerCommands implements CommandExecutor {
         }
         Msg.info(sender, "The feast is at " + site.getBlockX() + ", "
                 + (site.getBlockY() + 1) + ", " + site.getBlockZ() + ".");
+    }
+
+    /**
+     * Unsticks a player in the lobby: straight back to the centre. Pre-game only, since a
+     * free teleport during a match would be an escape from every fight.
+     */
+    private void spawn(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            Msg.error(sender, "Only players have somewhere to go.");
+            return;
+        }
+        if (!game.state().isPreGame()) {
+            Msg.error(sender, "Only before the game starts.");
+            return;
+        }
+        player.teleport(game.config().center());
+        Msg.info(sender, "Back at spawn.");
     }
 
     private void gameInfo(CommandSender sender) {

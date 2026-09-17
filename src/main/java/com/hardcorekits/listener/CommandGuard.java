@@ -29,7 +29,7 @@ public final class CommandGuard implements Listener {
 
     /** Everything a civilian may run. Namespaced forms (minecraft:me) are stripped first. */
     private static final Set<String> ALLOWED = Set.of(
-            "kit", "kits", "help", "stats",
+            "kit", "kits", "help", "stats", "spawn",
             "msg", "tell", "whisper", "w",
             "feast", "game");
 

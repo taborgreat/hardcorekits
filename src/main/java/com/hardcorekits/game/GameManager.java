@@ -571,6 +571,10 @@ public final class GameManager {
             if (state != GameState.WAITING) {
                 return;
             }
+            if (lobbyHeld) {
+                Msg.notice("The host will start the game.");
+                return;
+            }
             int missing = config.minPlayers() - participantCount();
             if (missing <= 0) {
                 return; // the countdown is about to speak for itself
@@ -583,9 +587,42 @@ public final class GameManager {
     private void tickLobby() {
         refreshMotd();
         showKitChoice();
-        if (state == GameState.WAITING && participantCount() >= config.minPlayers()) {
+        if (state == GameState.WAITING && !lobbyHeld
+                && participantCount() >= config.minPlayers()) {
             startCountdown();
         }
+    }
+
+    // ---------------------------------------------------------------- the host's hold
+
+    /**
+     * While held, the lobby never starts itself, however full it gets. For a scheduled
+     * event: everyone gathers, picks kits and waits for the host to say go. Lifted by
+     * {@link #releaseLobby()} or by any admin start.
+     */
+    private boolean lobbyHeld;
+
+    public boolean lobbyHeld() {
+        return lobbyHeld;
+    }
+
+    /**
+     * Holds the lobby. A countdown already running is cancelled back to WAITING, since the
+     * point of a hold is that nothing starts until the host says so.
+     */
+    public void holdLobby() {
+        lobbyHeld = true;
+        if (state == GameState.COUNTDOWN) {
+            Phases.cancel(countdownTask);
+            countdownTask = null;
+            Msg.notice("The host is holding the lobby. Countdown cancelled.");
+            enterWaiting();
+        }
+    }
+
+    /** Lifts the hold; the lobby watcher starts the countdown on its next tick if it can. */
+    public void releaseLobby() {
+        lobbyHeld = false;
     }
 
     /**
@@ -646,15 +683,31 @@ public final class GameManager {
     /** Seconds left on the running countdown. Mutable, because the lobby can change it. */
     private int countdownRemaining;
 
+    /** A countdown the host set by hand keeps its length: the busy-lobby cut does not apply. */
+    private boolean countdownFixed;
+
     public void startCountdown() {
+        // A quiet lobby gets the long fuse so stragglers can gather; a busy one starts fast.
+        startCountdown(participantCount() >= config.busyPlayers()
+                ? config.busyCountdownSeconds()
+                : config.countdownSeconds(), false);
+    }
+
+    /**
+     * A countdown of exactly this many seconds, as the host asked for it. Lifts any hold,
+     * and the busy-lobby shortening leaves it alone.
+     */
+    public void startCountdown(int seconds) {
+        lobbyHeld = false;
+        startCountdown(seconds, true);
+    }
+
+    private void startCountdown(int seconds, boolean fixed) {
         if (state != GameState.WAITING) {
             return;
         }
-
-        // A quiet lobby gets the long fuse so stragglers can gather; a busy one starts fast.
-        countdownRemaining = participantCount() >= config.busyPlayers()
-                ? config.busyCountdownSeconds()
-                : config.countdownSeconds();
+        countdownRemaining = seconds;
+        countdownFixed = fixed;
 
         // Schedule first, promote the state second. If scheduling throws, the game stays in
         // WAITING and keeps working rather than stranding in a COUNTDOWN that never ticks.
@@ -683,7 +736,7 @@ public final class GameManager {
             enterWaiting();
             return;
         }
-        if (count >= config.busyPlayers()
+        if (!countdownFixed && count >= config.busyPlayers()
                 && countdownRemaining > config.busyCountdownSeconds()) {
             // Silent: the countdown ladder picks up at the shorter number on the next tick,
             // which says everything the announcement did.
