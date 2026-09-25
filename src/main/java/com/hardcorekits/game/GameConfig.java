@@ -235,6 +235,7 @@ public final class GameConfig {
     private final boolean webEnabled;
     private final String webBind;
     private final int webPort;
+    private final String webVersionLabel;
     private final boolean worldgenNoOceans;
     private final int swampMushroomsPerChunk;
     private final int forestMushroomsPerChunk;
@@ -455,6 +456,7 @@ public final class GameConfig {
         this.webEnabled = c.getBoolean("web.enabled", true);
         this.webBind = c.getString("web.bind", "127.0.0.1");
         this.webPort = c.getInt("web.port", 8085);
+        this.webVersionLabel = c.getString("web.version-label", "").trim();
         this.worldgenNoOceans = c.getBoolean("worldgen.no-oceans", true);
         this.swampMushroomsPerChunk = c.getInt("worldgen.swamp-mushrooms-per-chunk", 6);
         this.forestMushroomsPerChunk = c.getInt("worldgen.forest-mushrooms-per-chunk", 4);
@@ -1520,6 +1522,14 @@ public final class GameConfig {
 
     public int webPort() {
         return webPort;
+    }
+
+    /**
+     * Version the site advertises next to the address. Blank means the server's own Minecraft
+     * version; set it when ViaVersion lets newer clients in than the server itself runs.
+     */
+    public String webVersionLabel() {
+        return webVersionLabel;
     }
 
     /**

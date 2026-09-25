@@ -15,7 +15,7 @@ dependencies {
     // Paper moved to calendar versioning + build-stamped Maven coords (no more 1.21-R0.1-SNAPSHOT).
     // Bump this to the newest "<mc>.build.<n>-stable" from:
     // https://repo.papermc.io/repository/maven-public/io/papermc/paper/paper-api/maven-metadata.xml
-    compileOnly("io.papermc.paper:paper-api:26.2.build.121-stable")
+    compileOnly("io.papermc.paper:paper-api:26.2.build.129-stable")
 }
 
 java {

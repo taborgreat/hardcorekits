@@ -96,7 +96,8 @@ public final class StatusServer {
 
         JsonObject json = new JsonObject();
         json.addProperty("state", game.state().name());
-        json.addProperty("version", Bukkit.getMinecraftVersion());
+        String label = game.config().webVersionLabel();
+        json.addProperty("version", label.isEmpty() ? Bukkit.getMinecraftVersion() : label);
         json.addProperty("online", Bukkit.getOnlinePlayers().size());
         json.addProperty("maxPlayers", Bukkit.getMaxPlayers());
         json.addProperty("alive", game.alive().size());

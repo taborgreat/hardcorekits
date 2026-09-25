@@ -654,6 +654,12 @@ web:
   # the site runs on a different host, and firewall the port if you do.
   bind: 127.0.0.1
   port: 8085
+  # What the site shows as "MC v..." next to the address. Blank means the version this server
+  # runs. Set it to the newest CLIENT version that can join when ViaVersion is letting newer
+  # clients onto an older server -- players care about what their launcher is on, not ours.
+  # The server itself is on 26.2 (Geyser has no 26.3 build yet); ViaVersion 5.12.0 lets 26.3
+  # clients in, so 26.3 is what the site advertises.
+  version-label: "26.3"
 
 worldgen:
   # Give each rotated world a small datapack that raises the continent floor above sea level,

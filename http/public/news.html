@@ -33,6 +33,28 @@
         <article
           class="post"
           data-version="0.1"
+          data-date="2026-09-24"
+          data-author="HardcorePvP"
+          id="first-winner"
+        >
+          <h2>Congrats, Optimieren!</h2>
+          <p>
+            A special congratulations to Optimieren who was the winner of our
+            very first game. They killed HabKeinWlan as a Kangaroo in an epic
+            battle! We hope you enjoyed your cake celebration.
+          </p>
+          <p>
+            P.S. No one showed up to our Tournament last week. We will be
+            hosting another one when we see a regular player base begin to
+            form.
+          </p>
+          <p>Keep playing Gamers.</p>
+          <p class="post-sign">-HardcorePvP</p>
+        </article>
+
+        <article
+          class="post"
+          data-version="0.1"
           data-date="2026-09-12"
           id="tournament"
         >
@@ -262,6 +284,7 @@
             cmpVer(ver(a), ver(b)) ||
             b.dataset.date.localeCompare(a.dataset.date),
         );
+        const collapsible = [];
         for (const post of posts) {
           const d = new Date(post.dataset.date + "T12:00:00");
           const line = document.createElement("div");
@@ -294,12 +317,30 @@
             more.textContent = open ? "Show less" : "Show more";
           });
           post.appendChild(more);
+          collapsible.push([post, body, more]);
           box.appendChild(post);
           // Linked straight to this post (the homepage banner does that): open it.
           if (location.hash === "#" + post.id) {
             post.classList.add("open");
             more.textContent = "Show less";
           }
+        }
+
+        // A post shorter than the clamp has nothing behind "Show more", so it just stays
+        // open. Only ever collapsed -> open, so nothing can end up hidden with no control.
+        // Re-run once the web font has loaded, since that changes how tall the text is.
+        const openIfItFits = () => {
+          for (const [post, body, more] of collapsible) {
+            if (post.classList.contains("open")) continue;
+            if (body.scrollHeight <= body.clientHeight + 2) {
+              post.classList.add("open");
+              more.hidden = true;
+            }
+          }
+        };
+        openIfItFits();
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(openIfItFits).catch(() => {});
         }
 
         // The Minecraft version next to the address, same as on the homepage.
