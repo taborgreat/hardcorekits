@@ -44,6 +44,7 @@ import com.hardcorekits.listener.FishermanListener;
 import com.hardcorekits.listener.KayaListener;
 import com.hardcorekits.listener.PoseidonListener;
 import com.hardcorekits.listener.ProtectionListener;
+import com.hardcorekits.listener.ServerListListener;
 import com.hardcorekits.listener.PyroListener;
 import com.hardcorekits.listener.FlashListener;
 import com.hardcorekits.listener.HadesListener;
@@ -366,6 +367,7 @@ public final class HardcoreGames extends JavaPlugin {
 
         for (Listener listener : new Listener[]{
                 new AdvancementListener(),
+                new ServerListListener(game.config()),
                 new EnchantingListener(this, game),
                 new ConnectionListener(game, staff),
                 new CommandGuard(staff),

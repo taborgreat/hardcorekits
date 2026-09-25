@@ -29,7 +29,7 @@ center:
 min-players: 2
 
 # At this many participants the countdown collapses to the short fuse below — a full lobby
-# should not stare at a five-minute clock. Raise as the server grows.
+# should not stare at the whole clock. Raise as the server grows.
 busy-players: 20
 busy-countdown-seconds: 60
 
@@ -41,10 +41,16 @@ max-players: 120
 # server.properties is not the authority here.
 motd: 'Minecraft Hardcore Games'
 
+# What server list sites publish as this server's version, and what a client too old to join
+# sees in red beside the ping bars. The server itself runs 26.2 and ViaVersion translates 26.3
+# clients onto it, so the range is the honest answer. Blank leaves Paper's own string.
+# This does not change what can actually connect — ViaVersion decides that.
+version-name: '26.2-26.3'
+
 # Seconds of countdown once the threshold is hit, when the lobby is below busy-players.
-# Long on purpose: with a 2-player floor, the five minutes is the window for more people to
-# wander in. Announced on the standard ladder: every minute, 30, 15, 10, then 5 down.
-countdown-seconds: 300
+# With a 2-player floor, these three minutes are the window for more people to wander in.
+# Announced on the standard ladder: every minute, 30, 15, 10, then 5 down.
+countdown-seconds: 180
 
 # Grace period after the drop. Player-dealt damage is blocked; environment damage is not.
 invulnerable-seconds: 120

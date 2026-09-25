@@ -725,7 +725,7 @@ public final class GameManager {
      * <p>Dropping under min-players cancels the start outright — with a two-player floor,
      * your opponent leaving means there is nobody to fight, and a match that begins anyway
      * begins solved. And filling past busy-players cuts the fuse to the short one: the long
-     * wait exists for empty evenings, not for a full lobby staring at a five-minute clock.
+     * wait exists for empty evenings, not for a full lobby staring at the whole clock.
      */
     private void tickCountdown() {
         int count = participantCount();

@@ -53,6 +53,7 @@ public final class GameConfig {
     private final int busyCountdownSeconds;
     private final int maxPlayers;
     private final String motd;
+    private final String versionName;
     private final int countdownSeconds;
     private final int invulnerableSeconds;
     private final double borderSize;
@@ -271,6 +272,7 @@ public final class GameConfig {
         this.busyCountdownSeconds = c.getInt("busy-countdown-seconds", 60);
         this.maxPlayers = c.getInt("max-players", 120);
         this.motd = c.getString("motd", "Minecraft Hardcore Games");
+        this.versionName = c.getString("version-name", "").trim();
         this.countdownSeconds = c.getInt("countdown-seconds", 300);
         this.invulnerableSeconds = c.getInt("invulnerable-seconds", 120);
         this.borderSize = c.getDouble("border.size", 1000.0D);
@@ -658,6 +660,14 @@ public final class GameConfig {
     /** The line under the server name in the multiplayer list. Applied at boot, like the slots. */
     public String motd() {
         return motd;
+    }
+
+    /**
+     * Version string put in the server list ping. Blank leaves Paper's own. Names a range
+     * because ViaVersion lets in clients newer than the server itself runs.
+     */
+    public String versionName() {
+        return versionName;
     }
 
     public int countdownSeconds() {
