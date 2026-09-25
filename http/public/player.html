@@ -22,7 +22,7 @@
   <title>Minecraft Hardcore Games: Player</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
-  <link rel="stylesheet" href="/style.css?v=70">
+  <link rel="stylesheet" href="/style.css?v=71">
 </head>
 <body class="swords">
 <main>
@@ -121,7 +121,12 @@
   <script>
     // The Minecraft version next to the address, same as on the homepage.
     fetch('/api/status').then((r) => r.json()).then((s) => {
-      if (s.version) document.querySelector('.mcver').textContent = ' \u00b7 MC v' + s.version;
+      if (s.version) {
+        const v = document.querySelector('.mcver');
+        v.textContent = ' \u00b7 MC v';
+        v.appendChild(Object.assign(document.createElement('span'),
+          { className: 'vernum', textContent: s.version }));
+      }
     }).catch(() => {});
 
     // Click the address to copy it, same as on the homepage.

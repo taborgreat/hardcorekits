@@ -28,7 +28,7 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
     />
-    <link rel="stylesheet" href="/style.css?v=70" />
+    <link rel="stylesheet" href="/style.css?v=71" />
   </head>
   <body class="swords">
     <main>
@@ -110,8 +110,10 @@
           try {
             const s = await (await fetch("/api/status")).json();
             if (s.version) {
-              document.getElementById("mcver").textContent =
-                " \u00b7 MC v" + s.version;
+              const v = document.getElementById("mcver");
+              v.textContent = ' \u00b7 MC v';
+              v.appendChild(Object.assign(document.createElement('span'),
+                { className: 'vernum', textContent: s.version }));
             }
             if (s.offline) {
               panel.className = "panel live live-busy";

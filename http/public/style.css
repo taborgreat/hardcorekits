@@ -473,6 +473,12 @@ form.search input:focus {
   transform: scale(1.07);
 }
 
+/* Only the version NUMBER is green, matching the border of the joinable game-state box
+   (.live-join). The "MC v" label stays grey, so the number is what the eye lands on. */
+.ip .vernum {
+  color: #3fa63f;
+}
+
 
 /* The live tracker wears the game's state: a green border while joinable, dimmed
    while a match has the server to itself. */
