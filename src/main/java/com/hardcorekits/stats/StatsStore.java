@@ -96,6 +96,14 @@ public final class StatsStore {
         return matches;
     }
 
+    /**
+     * Distinct players ever seen. Everyone online is touched by the 2-second status snapshot,
+     * so this is everybody who ever connected, not only those who finished a match.
+     */
+    public int totalPlayers() {
+        return entries.size();
+    }
+
     /** A real player entered a match. Fakes never reach this. */
     public void recordGameStart(Player player, String kitId) {
         Entry entry = entry(player.getUniqueId(), player.getName());
@@ -170,11 +178,14 @@ public final class StatsStore {
         return null;
     }
 
-    /** Most wins first, kills as the tiebreak. */
+    /**
+     * Most wins first, then kills, then games played — so someone who has at least played
+     * ranks above everyone who only ever sat in the lobby.
+     */
     public List<Entry> top(int limit) {
         List<Entry> all = new ArrayList<>(entries.values());
         all.sort(Comparator.comparingInt((Entry e) -> e.wins).thenComparingInt(e -> e.kills)
-                .reversed());
+                .thenComparingInt(e -> e.games).reversed());
         return all.subList(0, Math.min(limit, all.size()));
     }
 

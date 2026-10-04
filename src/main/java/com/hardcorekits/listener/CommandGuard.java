@@ -31,7 +31,7 @@ public final class CommandGuard implements Listener {
     private static final Set<String> ALLOWED = Set.of(
             "kit", "kits", "help", "stats", "spawn",
             "msg", "tell", "whisper", "w",
-            "feast", "game");
+            "feast", "game", "movie", "youtube");
 
     private final StaffManager staff;
 

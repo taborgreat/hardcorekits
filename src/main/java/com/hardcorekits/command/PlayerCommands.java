@@ -18,7 +18,7 @@ import java.util.Arrays;
 import java.util.Locale;
 
 /**
- * The civilian command set: /help, /stats, /msg, /feast, /game, /spawn.
+ * The civilian command set: /help, /stats, /msg, /feast, /game, /spawn. (/movie has its own class.)
  *
  * <p>There is no /kills: the XP level is the match kill count, and /stats says it too.
  *
@@ -55,26 +55,21 @@ public final class PlayerCommands implements CommandExecutor {
     // ---------------------------------------------------------------- /help
 
     private void help(CommandSender sender) {
-        sender.sendMessage(Component.text("Hardcore Games", NamedTextColor.RED));
+        sender.sendMessage(Component.text("HARDCORE GAMES", NamedTextColor.RED));
         for (String line : new String[]{
-                "Everyone drops into the wild. Last one standing wins.",
-                "Pick a kit in the lobby, it is your one special power.",
-                "After the drop everyone is invincible for a while: run, loot, get ready.",
-                "Mushroom soup heals. Swamps are where the mushrooms grow.",
-                "Later a feast of loot chests appears. /feast tells you where.",
-                "Take too long and everyone left is sealed in a box with rising lava."}) {
-            sender.sendMessage(Component.text(line, NamedTextColor.GREEN));
+                "Drop in. One kit. Last one standing wins.",
+                "Soup heals. The feast arms you. The lava ends it."}) {
+            sender.sendMessage(Component.text(line, NamedTextColor.RED));
         }
-        Msg.info(sender, "Commands:");
         for (String[] line : new String[][]{
-                {"/kit <name>", "choose a kit before the game starts"},
-                {"/kit", "see your current kit"},
-                {"/kits [page]", "browse every kit"},
-                {"/stats [player]", "lifetime stats, plus your kills this match"},
-                {"/msg <player> <text>", "whisper privately, also /tell and /whisper"},
-                {"/feast", "the feast coordinates, once it has appeared"},
-                {"/game", "match time and players remaining"},
-                {"/spawn", "back to the centre if you get stuck, lobby only"}}) {
+                {"/kit <name>", "choose your kit"},
+                {"/kits", "every kit"},
+                {"/stats [player]", "the record"},
+                {"/feast", "where the loot is"},
+                {"/game", "time and players left"},
+                {"/msg <player> <text>", "whisper"},
+                {"/spawn", "unstick, lobby only"},
+                {"/movie", "your name and voice in the match films"}}) {
             commandLine(sender, line[0], line[1]);
         }
 
@@ -114,7 +109,7 @@ public final class PlayerCommands implements CommandExecutor {
     }
 
     private static void commandLine(CommandSender sender, String usage, String what) {
-        sender.sendMessage(Component.text("  " + usage, NamedTextColor.AQUA)
+        sender.sendMessage(Component.text("  " + usage, NamedTextColor.RED)
                 .append(Component.text("  " + what, NamedTextColor.GRAY)));
     }
 

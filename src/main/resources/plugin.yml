@@ -31,6 +31,10 @@ commands:
   spawn:
     description: Back to the centre if you are stuck. Before the game starts only.
     usage: /spawn
+  movie:
+    description: Your name, skin and voice in the match films.
+    usage: /movie help | block | voice list | voice <name|number>
+    aliases: [youtube]
   mod:
     description: Toggle mod mode, invisible and flying, outside the game. Staff only.
     usage: /mod

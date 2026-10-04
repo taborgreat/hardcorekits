@@ -666,6 +666,20 @@ web:
   # The server itself is on 26.2 (Geyser has no 26.3 build yet); ViaVersion 5.12.0 lets 26.3
   # clients in, so 26.3 is what the site advertises.
   version-label: "26.3"
+  # Rows on the stats page leaderboard.
+  leaderboard-size: 15
+
+# Posts to a Discord channel through a webhook: once when a match starts counting down, and
+# once when someone wins. Test matches with /hg fake players never post.
+#
+# The webhook URL is a password for posting into that channel, so it does NOT go in this file
+# (this file is in git and is overwritten from the jar at every boot). Put it alone on one
+# line in plugins/HardcoreGames/discord-webhook.txt instead. No file means no posts.
+discord:
+  # {time} becomes "3 minutes", "1 minute" or "45 seconds".
+  countdown-message: "A match is starting in {time}. Come join!"
+  # {player} is the winner's name.
+  win-message: "Congratulations {player} on winning the match!"
 
 worldgen:
   # Give each rotated world a small datapack that raises the continent floor above sea level,
@@ -718,3 +732,76 @@ pregen:
 performance:
   view-distance: 8
   simulation-distance: 6
+
+# Match recordings for the movie pipeline (mcmovie). A pure observer: while a match is live
+# deaths, hits, block changes, explosions, projectiles and chat are logged, and positions are
+# sampled at three speeds — sparsely while a player is only travelling, a little faster with
+# another tribute nearby, densely only while something is happening to them (damage, a tribute
+# within a few blocks, a shot, a teleport, the opening drop). A player standing still is not
+# written again until the idle interval comes round. Each match becomes a folder under recordings/ in the plugin
+# data folder; on the next boot the retired map's region files are moved in beside it instead
+# of being deleted. The movie pipeline deletes a recording once its video is made. keep-max
+# bounds the disk cost if nobody collects them: the oldest finished recordings are dropped.
+recording:
+  enabled: true
+  # Server ticks between position samples of a player in the thick of it. 2 = ten a second.
+  sample-ticks: 2
+  # Ticks between samples of a player nothing is happening to. 40 = one point every 2 seconds;
+  # the film walks them between points over the saved terrain.
+  idle-sample-ticks: 40
+  # Another tribute within near-blocks: sample every near-sample-ticks (an encounter may be
+  # coming). Within close-blocks: fast sampling, as if already fighting.
+  near-blocks: 24.0
+  near-sample-ticks: 10
+  close-blocks: 8.0
+  # How long damage dealt or taken keeps a player hot.
+  combat-hold-ticks: 200
+  # Everyone is sampled fast for this long after the drop, so the fall is on film.
+  drop-ticks: 100
+  # A travelling player gets an extra point after this many blocks, or a turn this sharp, so
+  # a sparse path still bends where the player did.
+  travel-blocks: 7.0
+  turn-degrees: 35.0
+  # Animals and monsters within ambient-blocks of a player in a fight are followed too
+  # (nearest first, at most ambient-max per player), so the scene is not empty.
+  ambient-blocks: 20.0
+  ambient-max: 12
+  # Real players alive at the drop for a match to be worth recording.
+  min-players: 2
+  keep-max: 3
+  chat: true
+  # How long a launched projectile, or a mob that fought a player, stays on the record.
+  projectile-track-ticks: 400
+  mob-track-ticks: 300
+  # Environmental damage below this (fire ticks and the like) is not logged.
+  min-logged-damage: 2.0
+  # Teleports shorter than this many blocks are not logged.
+  min-logged-teleport: 6.0
+
+# The match films (/movie). Voices a player can pick, in the order they are numbered:
+#   voice id: label shown in game
+# The ids are voices on the film pipeline's voice server (mcmovie voice_server/bank.json), so
+# only list ids that exist there. A player who never picks gets a random voice of their own.
+movie:
+  # The YouTube handle /movie help points players at.
+  channel: '@hardcorepvpcom'
+  voices:
+    young_male: Young guy
+    young_female: Young woman
+    adult_male: Man
+    adult_female: Woman
+    teen: Teen
+    kid: Kid
+    elderly_male: Old man
+    elderly_female: Old woman
+    gruff: Gruff
+    hero: Hero
+    villain: Villain
+    warrior_woman: Warrior
+    wise: Wise mentor
+    goofy: Goofy
+    coward: Nervous wreck
+    robot: Robot
+    whisper: Whisper
+    trailer: Movie trailer voice
+

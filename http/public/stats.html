@@ -22,7 +22,7 @@
   <title>Minecraft Hardcore Games: Player stats</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
-  <link rel="stylesheet" href="/style.css?v=71">
+  <link rel="stylesheet" href="/style.css?v=77">
 </head>
 <body class="swords">
 <main>
@@ -32,13 +32,16 @@
 
   <header class="banner">
     <div class="alpha"><span class="year">2026</span> Alpha v0.1</div>
-    <nav><a href="/">Home</a><a href="/news.html">News</a><a href="/stats.html">Stats</a><a href="/kits.html">Kits</a><a href="/faq.html">FAQ</a></nav>
+    <nav><a href="/">Home</a><a href="/news.html">News</a><a href="/stats.html">Stats</a><a href="/kits.html">Kits</a><a href="/faq.html">FAQ</a><a href="https://discord.gg/78AUNtv42z" target="_blank" rel="noopener">Discord</a></nav>
   </header>
 
   <form class="search" id="search">
     <input id="name" placeholder="Username" autocomplete="off" required>
     <button class="mc-button">Search</button>
   </form>
+  <p class="total-players" id="total-players" hidden>
+    Total players connected ever: <b id="total-players-n"></b>
+  </p>
   <div id="result"></div>
 
   <section class="panel">
@@ -77,7 +80,7 @@
       const el = document.getElementById('top');
       try {
         const top = await (await fetch('/api/stats/top')).json();
-        el.innerHTML = top.length ? table(top.slice(0, 10).map(row).join(''))
+        el.innerHTML = top.length ? table(top.map(row).join(''))
                                   : '<p>Nobody has finished a match yet.</p>';
       } catch {
         el.textContent = 'Could not load the leaderboard.';
@@ -88,6 +91,11 @@
   <script>
     // The Minecraft version next to the address, same as on the homepage.
     fetch('/api/status').then((r) => r.json()).then((s) => {
+      if (typeof s.totalPlayers === 'number') {
+        document.getElementById('total-players-n').textContent =
+          s.totalPlayers.toLocaleString('en-US');
+        document.getElementById('total-players').hidden = false;
+      }
       if (s.version) {
         const v = document.querySelector('.mcver');
         v.textContent = ' \u00b7 MC v';
@@ -106,6 +114,10 @@
       });
     });
   </script>
+  <footer class="site-footer">
+    <a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a>
+    <span>Hardcore PVP is not affiliated with Mojang or Microsoft.</span>
+  </footer>
 </main>
 </body>
 </html>

@@ -65,8 +65,9 @@ public final class StatusServer {
         }
         server.createContext("/api/status", exchange -> respond(exchange, statusJson));
         server.createContext("/api/kits", exchange -> respond(exchange, kitsJson));
+        int topSize = game.config().webLeaderboardSize();
         server.createContext("/api/stats/top",
-                exchange -> respond(exchange, GSON.toJson(game.stats().top(10))));
+                exchange -> respond(exchange, GSON.toJson(game.stats().top(topSize))));
         server.createContext("/api/stats", this::handleStatsLookup);
         server.setExecutor(null);
         server.start();
@@ -106,6 +107,7 @@ public final class StatusServer {
         json.addProperty("matchElapsedSeconds", game.matchElapsedSeconds());
         json.addProperty("joinable", game.state().isPreGame());
         json.addProperty("totalGames", game.stats().totalMatches());
+        json.addProperty("totalPlayers", game.stats().totalPlayers());
         JsonArray names = new JsonArray();
         for (org.bukkit.entity.Player online : Bukkit.getOnlinePlayers()) {
             names.add(online.getName());

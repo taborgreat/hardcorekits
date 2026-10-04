@@ -42,6 +42,16 @@ public final class WorldRotator {
     private WorldRotator() {
     }
 
+    /**
+     * The world the last shutdown rotated away from, or null. Reads the marker without
+     * consuming it — the match recorder asks before {@link #purgePrevious(Plugin)} runs, so it
+     * can keep that map's region files.
+     */
+    public static String retiredWorld(Plugin plugin) {
+        File marker = new File(plugin.getDataFolder(), MARKER_FILE);
+        return marker.isFile() ? read(plugin, marker) : null;
+    }
+
     /** Deletes the world the last shutdown rotated away from. No-op on a normal boot. */
     public static void purgePrevious(Plugin plugin) {
         File marker = new File(plugin.getDataFolder(), MARKER_FILE);

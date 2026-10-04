@@ -2,11 +2,14 @@ package com.hardcorekits;
 
 import com.hardcorekits.command.AdminCommand;
 import com.hardcorekits.command.KitCommand;
+import com.hardcorekits.command.MovieCommand;
 import com.hardcorekits.command.PlayerCommands;
 import com.hardcorekits.command.StaffCommand;
 import com.hardcorekits.game.GameConfig;
 import com.hardcorekits.game.GameManager;
 import com.hardcorekits.kit.KitRegistry;
+import com.hardcorekits.movie.MoviePrefs;
+import com.hardcorekits.record.MatchRecorder;
 import com.hardcorekits.staff.RolesStore;
 import com.hardcorekits.staff.StaffManager;
 import com.hardcorekits.stats.StatsStore;
@@ -45,6 +48,7 @@ import com.hardcorekits.listener.KayaListener;
 import com.hardcorekits.listener.PoseidonListener;
 import com.hardcorekits.listener.ProtectionListener;
 import com.hardcorekits.listener.ServerListListener;
+import com.hardcorekits.discord.DiscordNotifier;
 import com.hardcorekits.listener.PyroListener;
 import com.hardcorekits.listener.FlashListener;
 import com.hardcorekits.listener.HadesListener;
@@ -88,8 +92,11 @@ public final class HardcoreGames extends JavaPlugin {
     private KitRegistry kits;
     private WorldShaper worldShaper;
     private StatusServer statusServer;
+    private DiscordNotifier discord;
     private StaffManager staff;
     private ChunkPregenerator pregen;
+    private MatchRecorder recorder;
+    private MoviePrefs moviePrefs;
 
     @Override
     public void onEnable() {
@@ -110,7 +117,11 @@ public final class HardcoreGames extends JavaPlugin {
 
         // If the last boot retired a map, its folder is still on disk and is not the world we
         // just booted into — so now is the one safe moment to delete it.
+        // A finished match recording keeps its map's region files; everything else about the
+        // retired world is deleted by the rotator on the next line.
+        MatchRecorder.adoptRetiredWorld(this);
         WorldRotator.purgePrevious(this);
+        MatchRecorder.prune(this);
 
         // Config first: kits with tuning values of their own are handed it as they register.
         GameConfig config = new GameConfig(getConfig());
@@ -131,6 +142,14 @@ public final class HardcoreGames extends JavaPlugin {
         game.setStaff(staff);
         game.onReset(staff::clearModMode);
 
+        // Match announcements in Discord. Silent unless discord-webhook.txt holds a URL.
+        discord = new DiscordNotifier(getDataFolder().toPath(), config, getLogger());
+        if (discord.enabled()) {
+            game.onCountdownStarted(discord::countdownStarted);
+            game.onMatchWon(discord::matchWon);
+            game.onReset(discord::reset);
+        }
+
         // Kit abilities stay locked until invincibility wears off. One gate, so every kit,
         // including any written later, is covered without touching its listener.
         kits.setAbilityGate(() -> game.state().isPvpEnabled());
@@ -142,6 +161,10 @@ public final class HardcoreGames extends JavaPlugin {
         getServer().setMaxPlayers(config.maxPlayers());
         getServer().motd(Component.text(config.motd()));
 
+        // What each player has said about the match films: blocked or shown, and their voice.
+        moviePrefs = new MoviePrefs(getDataFolder(), getConfig().getConfigurationSection("movie.voices"),
+                getLogger());
+
         registerCommands();
         registerListeners();
         SoupListener.registerRecipe(this);
@@ -149,6 +172,9 @@ public final class HardcoreGames extends JavaPlugin {
         KayaListener.registerRecipe(this);
 
         game.enable();
+        // Records live matches for the movie pipeline. A pure observer: see MatchRecorder.
+        recorder = new MatchRecorder(this, game, moviePrefs);
+        recorder.start();
         worldShaper.start();
         new BorderTask(this, game).start();
         // Generate the whole play area while the lobby fills — worldgen is the most
@@ -174,10 +200,17 @@ public final class HardcoreGames extends JavaPlugin {
             statusServer.stop();
             statusServer = null;
         }
+        // The win post leaves moments before the end-of-match shutdown; let it land.
+        if (discord != null) {
+            discord.awaitPending(3000L);
+        }
         SoupListener.unregisterRecipe(this);
         KayaListener.unregisterRecipe(this);
         if (game == null) {
             return;
+        }
+        if (recorder != null) {
+            recorder.close();
         }
         game.disable();
         game.stats().flush();
@@ -224,6 +257,9 @@ public final class HardcoreGames extends JavaPlugin {
         bind("feast", player, null);
         bind("game", player, null);
         bind("spawn", player, null);
+
+        MovieCommand movie = new MovieCommand(moviePrefs, getConfig().getString("movie.channel", ""));
+        bind("movie", movie, movie);
 
         StaffCommand staffCommand = new StaffCommand(staff);
         bind("mod", staffCommand, null);

@@ -31,6 +31,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 
 /**
  * Owns the state machine. Every listener and command reads {@link #state()} before acting;
@@ -78,6 +80,22 @@ public final class GameManager {
      * (Demoman mines, and so on) without the state machine knowing they exist.
      */
     private final List<Runnable> resetHooks = new ArrayList<>();
+
+    /**
+     * Told the countdown length in seconds when a real lobby starts counting down. Not fired
+     * for fake-padded tests, nor for a host's /hg start that is too short of players to last
+     * past its first tick.
+     */
+    private final List<IntConsumer> countdownHooks = new ArrayList<>();
+
+    /** Told the winner's name when a real player wins a match no fake took part in. */
+    private final List<Consumer<String>> winHooks = new ArrayList<>();
+
+    /**
+     * Whether any fake tribute took part in this match. Fakes leave the fake list when they
+     * die, so "are there fakes now" cannot answer this at the end; it is recorded instead.
+     */
+    private boolean matchHadFakes;
 
     private int fakeCounter;
 
@@ -197,6 +215,23 @@ public final class GameManager {
         resetHooks.add(hook);
     }
 
+    public void onCountdownStarted(IntConsumer hook) {
+        countdownHooks.add(hook);
+    }
+
+    public void onMatchWon(Consumer<String> hook) {
+        winHooks.add(hook);
+    }
+
+    /** Runs a hook so that one broken listener can never derail a state change. */
+    private void runHook(String what, Runnable hook) {
+        try {
+            hook.run();
+        } catch (RuntimeException e) {
+            plugin.getLogger().warning("A " + what + " hook failed: " + e);
+        }
+    }
+
     /**
      * Makes a player untouchable for a few seconds.
      *
@@ -254,6 +289,7 @@ public final class GameManager {
             fakes.put(uuid, "Bot" + (++fakeCounter));
             if (state.isLive()) {
                 alive.add(uuid);
+                matchHadFakes = true;
             }
         }
         return fakes.size();
@@ -537,6 +573,7 @@ public final class GameManager {
         matchKills.clear();
         immuneUntil.clear();
         clearFakes();
+        matchHadFakes = false;
         // A broken kit hook must not stop the game returning to WAITING either.
         for (Runnable hook : resetHooks) {
             try {
@@ -717,6 +754,12 @@ public final class GameManager {
 
         countdownTask = scheduled;
         state = GameState.COUNTDOWN;
+
+        if (fakes.isEmpty() && participantCount() >= config.minPlayers()) {
+            for (IntConsumer hook : countdownHooks) {
+                runHook("countdown", () -> hook.accept(seconds));
+            }
+        }
     }
 
     /**
@@ -800,6 +843,7 @@ public final class GameManager {
             stats.recordGameStart(player, kitIdOf(player.getUniqueId()));
         }
         alive.addAll(fakes.keySet());
+        matchHadFakes = !fakes.isEmpty();
 
         stats.recordMatchStart();
         matchStartMillis = System.currentTimeMillis();
@@ -1034,6 +1078,11 @@ public final class GameManager {
             stats.recordWin(uuid, nameOf(uuid), kitIdOf(uuid));
         }
         String winnerName = nameOf(uuid);
+        if (!matchHadFakes && !fakes.containsKey(uuid)) {
+            for (Consumer<String> hook : winHooks) {
+                runHook("win", () -> hook.accept(winnerName));
+            }
+        }
 
         // A beat before the win line, for two reasons. The runner-up's kill line is still
         // going out — "X wins!" has to land after it, not tangled into it. And when the last

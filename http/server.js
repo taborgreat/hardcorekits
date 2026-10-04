@@ -24,6 +24,8 @@ const STATS_JSON = process.env.STATS_JSON ||
   path.join(__dirname, '..', 'run', 'plugins', 'HardcoreGames', 'stats.json');
 const KITS_CACHE_FILE = path.join(__dirname, 'kits-cache.json');
 const POLL_MS = 30_000;
+// Matches web.leaderboard-size in the plugin's config.yml; only used when reading stats from disk.
+const LEADERBOARD_SIZE = 15;
 
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const TYPES = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript',
@@ -46,7 +48,10 @@ async function poll() {
     status = { ...(await res.json()), offline: false, fetchedAt: Date.now() };
     version = status.version || version;
   } catch {
-    status = { offline: true, version, fetchedAt: Date.now() };
+    // Between maps the plugin is down; the player total still comes off disk.
+    const all = statsEntries();
+    status = { offline: true, version, fetchedAt: Date.now(),
+               ...(all ? { totalPlayers: all.length } : {}) };
   }
 }
 poll();
@@ -109,8 +114,9 @@ function statsTopFromDisk() {
   const all = statsEntries();
   if (!all) return null;
   return all
-    .sort((a, b) => (b.wins || 0) - (a.wins || 0) || (b.kills || 0) - (a.kills || 0))
-    .slice(0, 10);
+    .sort((a, b) => (b.wins || 0) - (a.wins || 0) || (b.kills || 0) - (a.kills || 0)
+                 || (b.games || 0) - (a.games || 0))
+    .slice(0, LEADERBOARD_SIZE);
 }
 
 // ---------------------------------------------------------------- the server
@@ -160,6 +166,8 @@ function json(res, code, body) {
 
 function serveStatic(pathname, res) {
   if (pathname === '/') pathname = '/index.html';
+  // Clean URLs: /privacy serves privacy.html, /terms serves terms.html, and so on.
+  if (!path.extname(pathname) && fs.existsSync(path.join(PUBLIC_DIR, path.normalize(pathname + '.html')))) pathname += '.html';
   const file = path.join(PUBLIC_DIR, path.normalize(pathname));
   // Resolved path must sit strictly INSIDE public/ — the separator matters, or a sibling
   // directory that merely starts with the same name ("public-backup") would pass.

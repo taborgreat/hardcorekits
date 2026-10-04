@@ -237,6 +237,9 @@ public final class GameConfig {
     private final String webBind;
     private final int webPort;
     private final String webVersionLabel;
+    private final int webLeaderboardSize;
+    private final String discordCountdownMessage;
+    private final String discordWinMessage;
     private final boolean worldgenNoOceans;
     private final int swampMushroomsPerChunk;
     private final int forestMushroomsPerChunk;
@@ -459,6 +462,11 @@ public final class GameConfig {
         this.webBind = c.getString("web.bind", "127.0.0.1");
         this.webPort = c.getInt("web.port", 8085);
         this.webVersionLabel = c.getString("web.version-label", "").trim();
+        this.webLeaderboardSize = Math.max(1, c.getInt("web.leaderboard-size", 15));
+        this.discordCountdownMessage = c.getString("discord.countdown-message",
+                "A match is starting in {time}. Come join!");
+        this.discordWinMessage = c.getString("discord.win-message",
+                "Congratulations {player} on winning the match!");
         this.worldgenNoOceans = c.getBoolean("worldgen.no-oceans", true);
         this.swampMushroomsPerChunk = c.getInt("worldgen.swamp-mushrooms-per-chunk", 6);
         this.forestMushroomsPerChunk = c.getInt("worldgen.forest-mushrooms-per-chunk", 4);
@@ -1540,6 +1548,21 @@ public final class GameConfig {
      */
     public String webVersionLabel() {
         return webVersionLabel;
+    }
+
+    /** Rows on the stats page leaderboard. */
+    public int webLeaderboardSize() {
+        return webLeaderboardSize;
+    }
+
+    /** Discord post when a match starts counting down; {time} is the countdown length. */
+    public String discordCountdownMessage() {
+        return discordCountdownMessage;
+    }
+
+    /** Discord post when a match is won; {player} is the winner. */
+    public String discordWinMessage() {
+        return discordWinMessage;
     }
 
     /**

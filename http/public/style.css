@@ -140,6 +140,32 @@ p, table, form, .panel {
   color: #d8c25a;
 }
 
+/* "How it works": short punchy rules, bold lead-in on each, tight spacing. */
+.about h3 {
+  margin: 14px 0 6px;
+  font-size: 1em;
+  color: #e8e8e8;
+}
+
+.about ul.rules {
+  margin: 0 0 14px;
+  padding-left: 0;
+  list-style: none;
+}
+
+.about ul.rules li {
+  margin: 4px 0;
+}
+
+.about ul.rules b, .about .dim b {
+  color: #e8e8e8;
+}
+
+.about .closer {
+  color: #3fa63f;
+  font-weight: bold;
+}
+
 /* The gameplay clip between Game State and About: panel width, black border, pixel-crisp. */
 .gameplay {
   display: block;
@@ -271,13 +297,13 @@ nav a {
 }
 
 .banner nav a {
-  color: #5a3410;
+  color: #000;
   text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.35);
   padding: 2px 4px;
 }
 
 .banner nav a:hover {
-  color: #1f1000;
+  color: #5a3410;
 }
 
 /* The version line in the gap between the curls, unchanged in look, just placed there. */
@@ -419,6 +445,28 @@ button:hover {
 form.search {
   max-width: 545px;
   border-radius: 8px;
+}
+
+/* "Total players connected ever", sitting under the search bar: same width, same pixel
+   face, no gap between the two, and the number in the same green as the version. */
+p.total-players {
+  max-width: 545px;
+  margin-top: 0;
+  border-top: none;
+  text-align: center;
+  font-family: "Press Start 2P", "Courier New", monospace;
+  font-size: 0.7rem;
+  line-height: 1.6;
+  color: #c8c8c8;
+}
+
+p.total-players b {
+  color: #3fa63f;
+  font-weight: normal;
+}
+
+form.search:has(+ p.total-players) {
+  margin-bottom: 0;
 }
 
 /* The search box matches it: black slab, hard bevel, no rounded corners. */
@@ -1009,3 +1057,39 @@ details.faq summary:hover .faq-q {
 .rank-1 td, .rank-1 a { color: #ffd83d; font-weight: bold; }
 .rank-2 td, .rank-2 a { color: #cfcfcf; font-weight: bold; }
 .rank-3 td, .rank-3 a { color: #cd8a4f; font-weight: bold; }
+
+/* Legal pages: one long panel, headings inside it, plain lists. */
+.legal h2 {
+  margin: 22px 0 8px;
+  font-size: 1em;
+}
+.legal h2:first-of-type {
+  margin-top: 6px;
+}
+.legal ul {
+  margin: 0 0 10px;
+  padding-left: 20px;
+}
+.legal li {
+  margin: 6px 0;
+  line-height: 1.5;
+}
+
+/* Footer on every page: small, grey, out of the way. */
+.site-footer {
+  max-width: 780px;
+  margin: 26px auto 18px;
+  padding: 10px 22px;
+  background: rgba(0, 0, 0, 0.86);
+  border: 2px solid #000;
+  text-align: center;
+  font-size: 0.75em;
+  color: #9a9a9a;
+  line-height: 1.8;
+}
+.site-footer a {
+  margin: 0 10px;
+}
+.site-footer span {
+  display: block;
+}
