@@ -99,9 +99,9 @@ public final class LauncherListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onMove(PlayerMoveEvent event) {
-        // Pads lie dormant through the grace period along with every other kit ability, so the
-        // opening minutes cannot be spent flinging people off the map.
-        if (!game.state().isPvpEnabled()) {
+        // Pads work through the grace period like every other ability. A flight then costs
+        // nothing: nobody takes damage, the landing included.
+        if (!game.state().isLive()) {
             return;
         }
         Player player = event.getPlayer();

@@ -102,7 +102,7 @@ public final class GladiatorListener implements Listener {
             return;
         }
         Player challenger = event.getPlayer();
-        if (!game.state().isLive() || !kits.canUseAbility(challenger, GladiatorKit.ID)) {
+        if (!game.state().isLive() || !kits.canUsePvpAbility(challenger, GladiatorKit.ID)) {
             return;
         }
         if (challenger.getInventory().getItemInMainHand().getType() != GladiatorKit.BARS) {

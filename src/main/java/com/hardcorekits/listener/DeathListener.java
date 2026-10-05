@@ -63,8 +63,11 @@ public final class DeathListener implements Listener {
         // Suppress the vanilla death message; we broadcast our own formatted line.
         event.deathMessage(null);
 
-        // The sky marks every death: one clap of thunder, heard by everyone wherever they
-        // stand — the count just went down, and the whole map should feel it.
+        // The sky marks every death, like the cannon. A bolt comes down on the spot they
+        // fell — the effect only: it burns nothing, hurts nobody and breaks no block — and
+        // one clap of thunder is heard by everyone wherever they stand, because the count just
+        // went down and the whole map should feel it.
+        victim.getWorld().strikeLightningEffect(victim.getLocation());
         for (Player online : Bukkit.getOnlinePlayers()) {
             online.playSound(online.getLocation(),
                     org.bukkit.Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.6F, 1.0F);

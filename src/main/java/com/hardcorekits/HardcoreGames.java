@@ -150,11 +150,13 @@ public final class HardcoreGames extends JavaPlugin {
             game.onReset(discord::reset);
         }
 
-        // Kit abilities stay locked until invincibility wears off. One gate, so every kit,
-        // including any written later, is covered without touching its listener.
-        kits.setAbilityGate(() -> game.state().isPvpEnabled());
+        // Kit abilities work for the whole live match, invincibility included — the grace
+        // period blocks damage, not play. A short list of abilities that imprison another
+        // player wait for PvP instead (see KitRegistry#canUsePvpAbility).
+        kits.setAbilityGate(() -> game.state().isLive());
+        kits.setPvpGate(() -> game.state().isPvpEnabled());
         worldShaper = new WorldShaper(this, config.world().getName(), config.forestMushroomsPerChunk(),
-                config.swampMushroomsPerChunk());
+                config.swampMushroomsPerChunk(), config.openMushroomsPerChunk());
 
         // server.properties is rewritten on shutdown by the world rotator and the run/ copy is
         // untracked, so the listing details live in the plugin config and are stamped on at boot.
@@ -260,6 +262,10 @@ public final class HardcoreGames extends JavaPlugin {
 
         MovieCommand movie = new MovieCommand(moviePrefs, getConfig().getString("movie.channel", ""));
         bind("movie", movie, movie);
+        bind("highlight", movie, movie);
+        if (recorder != null) {
+            movie.highlighter(recorder::highlight);
+        }
 
         StaffCommand staffCommand = new StaffCommand(staff);
         bind("mod", staffCommand, null);
@@ -310,7 +316,9 @@ public final class HardcoreGames extends JavaPlugin {
 
         // The Spy watches on a sweep rather than on movement, so it needs starting like the
         // border does; who it has already warned about is per-match state.
-        SpyListener spy = new SpyListener(this, game, kits);
+        CompassListener compass = new CompassListener(game);
+        game.onReset(compass::clearState);
+        SpyListener spy = new SpyListener(this, game, kits, compass);
         game.onReset(spy::clearState);
         spy.start();
 
@@ -410,7 +418,7 @@ public final class HardcoreGames extends JavaPlugin {
                 watchdog,
                 new ProtectionListener(this, game),
                 new DeathListener(this, game, stomperListener, souls),
-                new CompassListener(game),
+                compass,
                 new CombatListener(game),
                 new SoupListener(game),
                 stomperListener,

@@ -34,6 +34,12 @@ public final class MovieCommand implements CommandExecutor, TabCompleter {
     private final MoviePrefs prefs;
     /** Where the films go, e.g. "@hardcorepvpcom". */
     private final String channel;
+    /** Marks a moment in the running recording; returns the line to show the player. */
+    private java.util.function.BiFunction<Player, String, String> highlighter;
+
+    public void highlighter(java.util.function.BiFunction<Player, String, String> highlighter) {
+        this.highlighter = highlighter;
+    }
 
     public MovieCommand(MoviePrefs prefs, String channel) {
         this.prefs = prefs;
@@ -45,6 +51,11 @@ public final class MovieCommand implements CommandExecutor, TabCompleter {
                              @NotNull String label, String @NotNull [] args) {
         if (!(sender instanceof Player player)) {
             Msg.error(sender, "Players only.");
+            return true;
+        }
+        // /highlight <why> is /movie highlight <why>
+        if (command.getName().equalsIgnoreCase("highlight")) {
+            highlight(player, args);
             return true;
         }
         if (args.length == 0 || args[0].equalsIgnoreCase("help")) {
@@ -61,9 +72,24 @@ public final class MovieCommand implements CommandExecutor, TabCompleter {
                 }
             }
             case "voice" -> voice(player, Arrays.copyOfRange(args, 1, args.length));
+            case "highlight" -> highlight(player, Arrays.copyOfRange(args, 1, args.length));
             default -> help(player);
         }
         return true;
+    }
+
+    /** "I just did something cool": mark this moment for the film, with a few words on why. */
+    private void highlight(Player player, String[] words) {
+        if (words.length == 0) {
+            player.sendMessage(Component.text("/highlight <what happened and why it was cool>", NamedTextColor.RED));
+            Msg.info(player, "Marks this moment for the film. Up to 3 a game.");
+            return;
+        }
+        if (highlighter == null) {
+            Msg.error(player, "Highlights are off right now.");
+            return;
+        }
+        Msg.info(player, highlighter.apply(player, String.join(" ", words)));
     }
 
     private void help(Player player) {
@@ -83,6 +109,7 @@ public final class MovieCommand implements CommandExecutor, TabCompleter {
         line(player, "/movie block", "toggle your name and skin");
         line(player, "/movie voice list", "every voice");
         line(player, "/movie voice <name|number>", "choose yours");
+        line(player, "/highlight <why>", "mark a cool moment for the film, 3 a game");
     }
 
     private void voice(Player player, String[] args) {
@@ -124,10 +151,14 @@ public final class MovieCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
                                       @NotNull String label, String @NotNull [] args) {
         List<String> options = new ArrayList<>();
+        if (command.getName().equalsIgnoreCase("highlight")) {
+            return options;
+        }
         if (args.length == 1) {
             options.add("help");
             options.add("block");
             options.add("voice");
+            options.add("highlight");
         } else if (args.length == 2 && args[0].equalsIgnoreCase("voice")) {
             options.add("list");
             options.add("random");

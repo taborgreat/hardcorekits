@@ -83,7 +83,7 @@ public final class TimelordListener implements Listener {
             return;
         }
         Player caster = event.getPlayer();
-        if (!game.state().isLive() || !kits.canUseAbility(caster, TimelordKit.ID)) {
+        if (!game.state().isLive() || !kits.canUsePvpAbility(caster, TimelordKit.ID)) {
             return; // anyone else is just checking the time
         }
         if (action == Action.RIGHT_CLICK_BLOCK && Interact.opensBlock(event)) {

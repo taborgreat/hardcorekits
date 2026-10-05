@@ -87,6 +87,32 @@ async function proxy(apiPath) {
   return { code: res.status, body: await res.text() };
 }
 
+// ---------------------------------------------------------------- films a player is in
+
+// The film pipeline (mcmovie) writes one record per published video, with the players who
+// appear in it, the moment it uploads. Read straight from its file; re-parsed when it changes.
+const FILMS_JSON = process.env.FILMS_JSON ||
+  require('path').join(require('os').homedir(), 'github', 'mcmovie', 'automation', 'films.json');
+let filmsFile = { mtime: -1, films: [] };
+function films() {
+  try {
+    const mtime = fs.statSync(FILMS_JSON).mtimeMs;
+    if (mtime !== filmsFile.mtime) {
+      const data = JSON.parse(fs.readFileSync(FILMS_JSON, 'utf8'));
+      filmsFile = { mtime, films: Array.isArray(data.films) ? data.films : [] };
+    }
+  } catch { /* no films yet, or mid-write: serve whatever we had */ }
+  // only what anyone can watch: unlisted and private uploads stay off the site
+  return filmsFile.films.filter((f) => f && f.url && (f.privacy || 'public') === 'public');
+}
+function filmsOf(player) {
+  const want = String(player).toLowerCase();
+  return films()
+    .filter((f) => (f.players || []).some((n) => String(n).toLowerCase() === want))
+    .slice(0, 100)
+    .map((f) => ({ url: f.url, title: f.title, kind: f.kind, short: !!f.short, published: f.published, played: f.played || '' }));
+}
+
 // ---------------------------------------------------------------- stats straight from disk
 
 // Re-parsed only when the file's mtime moves; a torn read mid-save keeps the last copy.
@@ -152,6 +178,11 @@ http.createServer(async (req, res) => {
         if (!result.found) return json(res, 404, '{"error":"no such player"}');
         return json(res, 200, JSON.stringify(result.found));
       }
+    }
+    if (url.pathname === '/api/films') {
+      const player = url.searchParams.get('player') || '';
+      if (!player) return json(res, 400, '{"error":"pass ?player=<name>"}');
+      return json(res, 200, JSON.stringify(filmsOf(player)));
     }
     return serveStatic(url.pathname, res);
   } catch (e) {

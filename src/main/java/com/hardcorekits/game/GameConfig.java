@@ -67,6 +67,7 @@ public final class GameConfig {
     private final int combatLogSeconds;
     private final int maxDisconnects;
     private final double compassMinDistance;
+    private final int compassCooldownTicks;
     private final int feastMinutes;
     private final int feastCircleMinutes;
     private final int feastRadius;
@@ -193,6 +194,8 @@ public final class GameConfig {
     private final double knockbackVerticalLimit;
     private final double knockbackExtraHorizontal;
     private final double knockbackExtraVertical;
+    private final double knockbackSprintHorizontal;
+    private final double knockbackSprintVertical;
     private final int poseidonWaterStrengthLevel;
     private final int ninjaMarkSeconds;
     private final int ninjaCooldownSeconds;
@@ -243,6 +246,7 @@ public final class GameConfig {
     private final boolean worldgenNoOceans;
     private final int swampMushroomsPerChunk;
     private final int forestMushroomsPerChunk;
+    private final int openMushroomsPerChunk;
     private final int lateJoinCutoffSeconds;
     private final double borderHardWallMargin;
     private final double borderForcefieldWarningDistance;
@@ -289,6 +293,7 @@ public final class GameConfig {
         this.combatLogSeconds = c.getInt("combat-log-seconds", 3);
         this.maxDisconnects = c.getInt("max-disconnects", 3);
         this.compassMinDistance = c.getDouble("compass-min-distance", 25.0D);
+        this.compassCooldownTicks = Math.max(0, c.getInt("compass-cooldown-ticks", 10));
         this.feastMinutes = c.getInt("feast.minutes", 22);
         this.feastCircleMinutes = c.getInt("feast.circle-minutes", 17);
         this.feastRadius = c.getInt("feast.radius", 15);
@@ -418,6 +423,8 @@ public final class GameConfig {
         this.knockbackVerticalLimit = c.getDouble("combat.knockback.vertical-limit", 0.4D);
         this.knockbackExtraHorizontal = c.getDouble("combat.knockback.extra-horizontal", 0.5D);
         this.knockbackExtraVertical = c.getDouble("combat.knockback.extra-vertical", 0.1D);
+        this.knockbackSprintHorizontal = c.getDouble("combat.knockback.sprint-horizontal", 0.2D);
+        this.knockbackSprintVertical = c.getDouble("combat.knockback.sprint-vertical", 0.05D);
         this.poseidonWaterStrengthLevel = c.getInt("kits.poseidon.water-strength-level", 1);
         this.ninjaMarkSeconds = c.getInt("kits.ninja.mark-seconds", 10);
         this.ninjaCooldownSeconds = c.getInt("kits.ninja.cooldown-seconds", 7);
@@ -470,6 +477,7 @@ public final class GameConfig {
         this.worldgenNoOceans = c.getBoolean("worldgen.no-oceans", true);
         this.swampMushroomsPerChunk = c.getInt("worldgen.swamp-mushrooms-per-chunk", 6);
         this.forestMushroomsPerChunk = c.getInt("worldgen.forest-mushrooms-per-chunk", 4);
+        this.openMushroomsPerChunk = c.getInt("worldgen.open-mushrooms-per-chunk", 0);
         this.lateJoinCutoffSeconds = c.getInt("late-join-cutoff-seconds", 5);
         this.borderHardWallMargin = c.getDouble("border.hard-wall-margin", 20.0D);
         this.borderForcefieldWarningDistance =
@@ -734,6 +742,11 @@ public final class GameConfig {
 
     public double compassMinDistance() {
         return compassMinDistance;
+    }
+
+    /** Ticks before one player's compass answers another click. */
+    public int compassCooldownTicks() {
+        return compassCooldownTicks;
     }
 
     public int feastMinutes() {
@@ -1339,6 +1352,16 @@ public final class GameConfig {
         return knockbackExtraVertical;
     }
 
+    /** What a sprinting swing adds along the attacker's facing, on top of the base shove. */
+    public double knockbackSprintHorizontal() {
+        return knockbackSprintHorizontal;
+    }
+
+    /** Lift a sprinting swing adds when no Knockback enchant is involved. */
+    public double knockbackSprintVertical() {
+        return knockbackSprintVertical;
+    }
+
     /** Strength worn as a badge while a Poseidon stands in water. 0 turns the badge off. */
     public int poseidonWaterStrengthLevel() {
         return poseidonWaterStrengthLevel;
@@ -1582,6 +1605,11 @@ public final class GameConfig {
 
     public int forestMushroomsPerChunk() {
         return forestMushroomsPerChunk;
+    }
+
+    /** Mushroom attempts per chunk on soil outside the swamps and forests. */
+    public int openMushroomsPerChunk() {
+        return openMushroomsPerChunk;
     }
 
     public boolean freshWorldOnRestart() {

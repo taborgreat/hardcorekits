@@ -71,9 +71,22 @@ public final class GamblerListener implements Listener {
             new Prize(124, "Hunger", p -> effect(p, PotionEffectType.HUNGER, 1)),
             new Prize(124, "Weakness", p -> effect(p, PotionEffectType.WEAKNESS, 0)),
             new Prize(1, "FULL DIAMOND ARMOUR", GamblerListener::diamonds),
-            new Prize(1, "DEATH", p -> p.setHealth(0.0D)));
+            new Prize(1, "DEATH", this::death));
 
     private final int totalWeight = prizes.stream().mapToInt(Prize::weight).sum();
+
+    /**
+     * The losing ticket. It sets health directly, which no damage rule ever sees — so the
+     * promise that nobody dies during invincibility has to be kept by hand, here.
+     */
+    private void death(Player player) {
+        if (!game.state().isPvpEnabled()) {
+            player.sendMessage(Component.text("Invincibility cheats the house. You live.",
+                    NamedTextColor.GOLD));
+            return;
+        }
+        player.setHealth(0.0D);
+    }
 
     public GamblerListener(HardcoreGames plugin, GameManager game, KitRegistry kits) {
         this.plugin = plugin;

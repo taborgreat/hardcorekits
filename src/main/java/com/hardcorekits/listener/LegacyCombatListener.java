@@ -51,7 +51,9 @@ import java.util.UUID;
  *   <li><b>Shields.</b> Did not exist. The recipe is dropped and a shield cannot be raised.</li>
  *   <li><b>Knockback.</b> Recomputed with the 1.8 formula. The visible difference is vertical:
  *       1.9 only lifts a victim who is on the ground, so combos keep people pinned, where 1.8
- *       lifted them every hit.</li>
+ *       lifted them every hit. One deliberate departure: a sprint is worth less than a
+ *       Knockback level (see {@code combat.knockback.sprint-horizontal}), because with
+ *       keep-sprint the full 1.8 bonus landed on any hit and read as a random launch.</li>
  *   <li><b>Regeneration.</b> 1.9 heals roughly a heart a second off saturation, which quietly
  *       makes food better than soup. Throttled back to the 1.8 rate.</li>
  * </ul>
@@ -244,15 +246,22 @@ public final class LegacyCombatListener implements Listener {
         if (lastBase != null && lastBase == tick) {
             // Second call this tick: the bonus. 1.8 added it straight onto the motion, along
             // the attacker's facing, which from a yaw is (-sin, cos).
-            int level = knockbackLevel(attacker);
-            if (level <= 0) {
+            // The enchant and the sprint are priced separately: a Knockback level is worth
+            // 1.8's full amount, a sprint is worth the smaller configured share.
+            int enchant = attacker.getInventory().getItemInMainHand()
+                    .getEnchantmentLevel(Enchantment.KNOCKBACK);
+            boolean sprinting = attacker.isSprinting();
+            if (enchant <= 0 && !sprinting) {
                 return;
             }
             double yaw = Math.toRadians(attacker.getLocation().getYaw());
-            double bonus = level * config.knockbackExtraHorizontal() * resisted;
+            double bonus = (enchant * config.knockbackExtraHorizontal()
+                    + (sprinting ? config.knockbackSprintHorizontal() : 0.0D)) * resisted;
+            double lift = (enchant > 0 ? config.knockbackExtraVertical()
+                    : config.knockbackSprintVertical()) * resisted;
             event.setKnockback(new Vector(
                     -Math.sin(yaw) * bonus,
-                    config.knockbackExtraVertical() * resisted,
+                    lift,
                     Math.cos(yaw) * bonus));
             return;
         }
@@ -282,13 +291,6 @@ public final class LegacyCombatListener implements Listener {
 
     /** Victim -> tick of their last base shove, so the bonus call in the same tick is known. */
     private final java.util.Map<java.util.UUID, Integer> baseShoveTick = new java.util.HashMap<>();
-
-    /** Knockback enchant on the swung item, with sprinting worth a level of its own. */
-    private int knockbackLevel(Player attacker) {
-        int level = attacker.getInventory().getItemInMainHand()
-                .getEnchantmentLevel(Enchantment.KNOCKBACK);
-        return attacker.isSprinting() ? level + 1 : level;
-    }
 
     private double knockbackResistance(LivingEntity victim) {
         AttributeInstance resistance = victim.getAttribute(Attribute.KNOCKBACK_RESISTANCE);

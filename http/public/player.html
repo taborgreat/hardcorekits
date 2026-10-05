@@ -22,7 +22,7 @@
   <title>Minecraft Hardcore Games: Player</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
-  <link rel="stylesheet" href="/style.css?v=77">
+  <link rel="stylesheet" href="/style.css?v=80">
 </head>
 <body class="swords">
 <main>
@@ -32,7 +32,7 @@
 
   <header class="banner">
     <div class="alpha"><span class="year">2026</span> Alpha v0.1</div>
-    <nav><a href="/">Home</a><a href="/news.html">News</a><a href="/stats.html">Stats</a><a href="/kits.html">Kits</a><a href="/faq.html">FAQ</a><a href="https://discord.gg/78AUNtv42z" target="_blank" rel="noopener">Discord</a></nav>
+    <nav><a href="/">Home</a><a href="/news.html">News</a><a href="/stats.html">Stats</a><a href="/kits.html">Kits</a><a href="/faq.html">FAQ</a><a href="https://www.youtube.com/@hardcorepvpcom/videos" target="_blank" rel="noopener">Watch</a><a href="https://discord.gg/78AUNtv42z" target="_blank" rel="noopener">Discord</a></nav>
   </header>
   <div id="page" class="panel">Loading…</div>
 
@@ -99,22 +99,71 @@
 
       const kits = Object.entries(p.kits || {})
           .sort((a, b) => b[1].games - a[1].games || b[1].kills - a[1].kills);
+      let kitsHtml = '';
       if (kits.length) {
-        html += '<h2>Kits</h2>';
         // data-label lets the stylesheet stack each row into a card on narrow screens.
         const cell = (label, value) => '<td data-label="' + label + '">' + value + '</td>';
-        html += '<table class="kit-table"><thead><tr><th>Kit</th><th>Games</th>'
+        kitsHtml += '<table class="kit-table"><thead><tr><th>Kit</th><th>Games</th>'
               + '<th>Wins</th><th>Kills</th><th>Kills/game</th><th>Win rate</th></tr></thead><tbody>';
         for (const [id, k] of kits) {
-          html += '<tr>' + cell('Kit', names[id] || id) + cell('Games', k.games)
+          kitsHtml += '<tr>' + cell('Kit', names[id] || id) + cell('Games', k.games)
                 + cell('Wins', k.wins) + cell('Kills', k.kills)
                 + cell('Kills/game', avg(k.kills, k.games))
                 + cell('Win rate', pct(k.wins, k.games)) + '</tr>';
         }
-        html += '</tbody></table>';
+        kitsHtml += '</tbody></table>';
       }
-      // No kit data yet: show nothing rather than an apology.
+
+      // Every movie this player appears in (the film pipeline records who is in each one).
+      let moviesHtml = '';
+      let movieCount = 0;
+      try {
+        const films = await (await fetch('/api/films?player=' + encodeURIComponent(name))).json();
+        if (Array.isArray(films) && films.length) {
+          movieCount = films.length;
+          const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+          moviesHtml += '<ul class="film-list">';
+          for (const f of films) {
+            const day = f.published ? new Date(f.published).toLocaleDateString() : '';
+            moviesHtml += '<li><a href="' + esc(f.url) + '" target="_blank" rel="noopener">' + esc(f.title) + '</a>'
+                  + '<span class="muted">' + (f.kind === 'match' ? 'match' : 'story') + (f.short ? ' short' : '')
+                  + (day ? ' · ' + day : '') + '</span></li>';
+          }
+          moviesHtml += '</ul>';
+        }
+      } catch { /* no movie list: the profile is still complete without it */ }
+      if (!moviesHtml) {
+        moviesHtml = '<p class="film-none">None yet. Play some matches and use <code>/highlight</code> during critical moments.</p>';
+      }
+
+      // Kits and movies. With both, a phone gets two buttons that switch between them (no
+      // scrolling past one to reach the other) and a wide screen shows them side by side.
+      // A player with no kit games yet just gets the Movies section.
+      const pane = (id, title, body, on) =>
+          '<section class="profile-pane' + (on ? ' is-on' : '') + '" data-pane="' + id + '"><h2>' + title + '</h2>' + body + '</section>';
+      if (kitsHtml) {
+        html += '<div class="profile-tabs" role="tablist">'
+              + '<button type="button" class="mc-button profile-tab is-on" data-tab="kits" role="tab" aria-selected="true">Kits</button>'
+              + '<button type="button" class="mc-button profile-tab" data-tab="movies" role="tab" aria-selected="false">Movies (' + movieCount + ')</button>'
+              + '</div>'
+              + '<div class="profile-panes both">' + pane('kits', 'Kits', kitsHtml, true) + pane('movies', 'Movies', moviesHtml, false) + '</div>';
+      } else {
+        html += '<div class="profile-panes">' + pane('movies', 'Movies', moviesHtml, true) + '</div>';
+      }
       el.outerHTML = '<div>' + html + '</div>';
+
+      for (const tab of document.querySelectorAll('.profile-tab')) {
+        tab.addEventListener('click', () => {
+          for (const t of document.querySelectorAll('.profile-tab')) {
+            const on = t === tab;
+            t.classList.toggle('is-on', on);
+            t.setAttribute('aria-selected', on ? 'true' : 'false');
+          }
+          for (const s of document.querySelectorAll('.profile-pane')) {
+            s.classList.toggle('is-on', s.dataset.pane === tab.dataset.tab);
+          }
+        });
+      }
     })();
   </script>
 
@@ -140,7 +189,7 @@
     });
   </script>
   <footer class="site-footer">
-    <a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a>
+    <a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a><a href="https://www.youtube.com/@hardcorepvpcom" target="_blank" rel="noopener">YouTube</a><a href="https://discord.gg/78AUNtv42z" target="_blank" rel="noopener">Discord</a>
     <span>Hardcore PVP is not affiliated with Mojang or Microsoft.</span>
   </footer>
 </main>

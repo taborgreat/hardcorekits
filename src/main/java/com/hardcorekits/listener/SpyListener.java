@@ -58,6 +58,7 @@ public final class SpyListener implements Listener {
     private final HardcoreGames plugin;
     private final GameManager game;
     private final KitRegistry kits;
+    private final CompassListener compass;
 
     /** Per Spy, everyone already announced — cleared per person as they leave the radius. */
     private final Map<UUID, Set<UUID>> announced = new HashMap<>();
@@ -73,10 +74,12 @@ public final class SpyListener implements Listener {
      */
     private final Map<UUID, UUID> pinned = new HashMap<>();
 
-    public SpyListener(HardcoreGames plugin, GameManager game, KitRegistry kits) {
+    public SpyListener(HardcoreGames plugin, GameManager game, KitRegistry kits,
+            CompassListener compass) {
         this.plugin = plugin;
         this.game = game;
         this.kits = kits;
+        this.compass = compass;
     }
 
     /** Starts the radar sweep. Called once, at enable, like the border. */
@@ -96,11 +99,15 @@ public final class SpyListener implements Listener {
     /**
      * MONITOR so the ordinary "Compass pointing at X" line lands first and this reads as the
      * detail under it. Nothing here changes the event.
+     *
+     * <p>Not {@code ignoreCancelled}, for the reason given on the compass itself: air clicks
+     * arrive cancelled. Instead it asks whether the compass answered this click.
      */
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onCompass(PlayerInteractEvent event) {
         Player spy = event.getPlayer();
-        if (!CompassListener.isCompassClick(event, game) || !kits.canUseAbility(spy, SpyKit.ID)) {
+        if (!CompassListener.isCompassClick(event, game) || !compass.answeredThisTick(spy)
+                || !kits.canUseAbility(spy, SpyKit.ID)) {
             return;
         }
         Player target = CompassListener.nearestOpponent(game, spy);

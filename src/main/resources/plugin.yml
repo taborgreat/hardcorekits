@@ -33,8 +33,11 @@ commands:
     usage: /spawn
   movie:
     description: Your name, skin and voice in the match films.
-    usage: /movie help | block | voice list | voice <name|number>
+    usage: /movie help | block | voice list | voice <name|number> | highlight <why>
     aliases: [youtube]
+  highlight:
+    description: Mark something cool you just did for the match film. Up to 3 a game.
+    usage: /highlight <what happened and why it was cool>
   mod:
     description: Toggle mod mode, invisible and flying, outside the game. Staff only.
     usage: /mod

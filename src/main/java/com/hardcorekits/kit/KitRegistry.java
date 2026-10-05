@@ -79,6 +79,7 @@ public final class KitRegistry {
 
     /** Open until the plugin wires the game in, so a registry on its own behaves normally. */
     private BooleanSupplier abilityGate = () -> true;
+    private BooleanSupplier pvpGate = () -> true;
 
     /** Kits with tuning values of their own take the config; the rest ignore it. */
     public void registerDefaults(GameConfig config) {
@@ -169,12 +170,14 @@ public final class KitRegistry {
     /**
      * Whether this player may fire that kit's ability right now.
      *
-     * <p>Abilities are locked until invincibility wears off, so the opening minutes are the
-     * same for everyone: nobody is frozen, thrown, drilled out from under, or struck by
-     * lightning before the game has properly started.
+     * <p>Abilities work from the moment the match drops, invincibility included: a
+     * Cookiemonster cuts grass, a Flash teleports, a Thor calls lightning. What the grace
+     * period guarantees is that nobody takes DAMAGE — that is {@code ProtectionListener}'s
+     * rule, applied to every damage event, so no kit has to remember it.
      *
-     * <p>The rule lives here rather than in twenty listeners, which means a kit written later
-     * is locked during the grace period by default instead of by remembering to check.
+     * <p>The rule lives here rather than in twenty listeners. The few abilities that would be
+     * abusive while their victim cannot fight back use
+     * {@link #canUsePvpAbility(Player, String)} instead.
      */
     public boolean canUseAbility(Player player, String kitId) {
         if (!hasKit(player, kitId)) {
@@ -183,7 +186,24 @@ public final class KitRegistry {
         if (abilityGate.getAsBoolean()) {
             return true;
         }
-        explainLock(player);
+        explainLock(player, "Kit abilities unlock when the game starts.");
+        return false;
+    }
+
+    /**
+     * The stricter gate, for the short list of abilities that stay locked until invincibility
+     * ends: the ones that take another player prisoner, where the only answer is to hit back
+     * and hits cannot land yet. Gladiator's arena and Timelord's freeze. Keep this list short —
+     * an ability that merely moves or annoys someone belongs on the ordinary gate.
+     */
+    public boolean canUsePvpAbility(Player player, String kitId) {
+        if (!hasKit(player, kitId)) {
+            return false;
+        }
+        if (pvpGate.getAsBoolean()) {
+            return true;
+        }
+        explainLock(player, "This ability unlocks when invincibility ends.");
         return false;
     }
 
@@ -194,20 +214,24 @@ public final class KitRegistry {
      * deliberate clicks, and a locked ability should read as "not yet" rather than as a kit
      * that does not work.
      */
-    private void explainLock(Player player) {
+    private void explainLock(Player player, String why) {
         long now = System.currentTimeMillis();
         Long last = lastLockNotice.get(player.getUniqueId());
         if (last != null && now - last < LOCK_NOTICE_MILLIS) {
             return;
         }
         lastLockNotice.put(player.getUniqueId(), now);
-        player.sendActionBar(Component.text("Kit abilities unlock when invincibility ends.",
-                NamedTextColor.GRAY));
+        player.sendActionBar(Component.text(why, NamedTextColor.GRAY));
     }
 
     /** Wired by the plugin once the game exists, since the gate is a game-state question. */
     public void setAbilityGate(BooleanSupplier gate) {
         this.abilityGate = gate;
+    }
+
+    /** Wired alongside the ability gate: open once players can hurt each other. */
+    public void setPvpGate(BooleanSupplier gate) {
+        this.pvpGate = gate;
     }
 
     /** Applies the player's chosen kit, falling back to the first registered kit. */

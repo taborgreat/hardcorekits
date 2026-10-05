@@ -13,6 +13,7 @@ import org.bukkit.entity.Entity;
 import io.papermc.paper.datacomponent.item.ResolvableProfile;
 import org.bukkit.entity.Mannequin;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
@@ -85,8 +86,13 @@ public final class WispListener implements Listener {
 
     // ---------------------------------------------------------------- the cream
 
-    @EventHandler(ignoreCancelled = true)
+    // Not ignoreCancelled: Bukkit delivers every click at the open air already
+    // "cancelled", so that flag made this answer only when aimed at a block.
+    @EventHandler
     public void onUse(PlayerInteractEvent event) {
+        if (event.useItemInHand() == Event.Result.DENY) {
+            return; // a listener that really cancelled the click
+        }
         Action action = event.getAction();
         if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) {
             return;

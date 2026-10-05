@@ -12,6 +12,7 @@ import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
@@ -94,8 +95,13 @@ public final class FlashListener implements Listener {
      * for convenience, but a right-click on a block item only reaches the server when a block
      * is within placing reach — which is why aiming at a distant tower did nothing.
      */
-    @EventHandler(ignoreCancelled = true)
+    // Not ignoreCancelled: Bukkit delivers every click at the open air already
+    // "cancelled", so that flag made this answer only when aimed at a block.
+    @EventHandler
     public void onFlash(PlayerInteractEvent event) {
+        if (event.useItemInHand() == Event.Result.DENY) {
+            return; // a listener that really cancelled the click
+        }
         Action action = event.getAction();
         if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK
                 && action != Action.LEFT_CLICK_AIR && action != Action.LEFT_CLICK_BLOCK) {

@@ -46,6 +46,7 @@ public final class WorldShaper implements Listener {
     private final String worldName;
     private final int swampMushroomsPerChunk;
     private final int forestMushroomsPerChunk;
+    private final int openMushroomsPerChunk;
     private final Set<Long> processed = new HashSet<>();
     /**
      * Natural surface height per column, recorded the first time a chunk is shaped, before
@@ -60,11 +61,12 @@ public final class WorldShaper implements Listener {
     private int mushroomsPlanted;
 
     public WorldShaper(HardcoreGames plugin, String worldName, int forestMushroomsPerChunk,
-                       int swampMushroomsPerChunk) {
+                       int swampMushroomsPerChunk, int openMushroomsPerChunk) {
         this.plugin = plugin;
         this.worldName = worldName;
         this.forestMushroomsPerChunk = forestMushroomsPerChunk;
         this.swampMushroomsPerChunk = swampMushroomsPerChunk;
+        this.openMushroomsPerChunk = openMushroomsPerChunk;
     }
 
     /** Biomes whose floors are shaded enough for mushrooms to take. */
@@ -169,17 +171,24 @@ public final class WorldShaper implements Listener {
      * is centred on should actually feed it. Forest floors get a smaller share too.
      *
      * <p>Per column, not per chunk biome: chunks straddle biome borders, and only the swampy
-     * columns should get anything. Placement obeys the block's own survival rule — mushrooms
-     * pop off in bright light at the first neighbour update — so only shaded spots (under the
-     * swamp oaks, which is where vanilla puts them too) are used, and the count per chunk is
-     * attempts, not a quota.
+     * columns should get anything. The count per chunk is attempts, not a quota: an attempt
+     * that lands on water, sand or a tree is simply lost.
+     *
+     * <p>They go anywhere there is soil, in the open as well as under the trees, and they take
+     * the place of grass and ferns. That is how vanilla's own generation leaves them: a
+     * mushroom in daylight stays put until a block right next to it changes, and then it
+     * drops as an item instead of vanishing. An earlier version planted only in deep shade,
+     * which in a swamp is almost nowhere, and the swamps came out nearly empty.
      */
     private void sprinkleMushrooms(Chunk chunk) {
-        sprinkle(chunk, swampMushroomsPerChunk, SWAMPS);
-        sprinkle(chunk, forestMushroomsPerChunk, FOREST_FLOORS);
+        sprinkle(chunk, swampMushroomsPerChunk, SWAMPS::contains);
+        sprinkle(chunk, forestMushroomsPerChunk, FOREST_FLOORS::contains);
+        // Everywhere that is neither: open country gets a thinner scatter of its own.
+        sprinkle(chunk, openMushroomsPerChunk,
+                biome -> !SWAMPS.contains(biome) && !FOREST_FLOORS.contains(biome));
     }
 
-    private void sprinkle(Chunk chunk, int attempts, Set<Biome> biomes) {
+    private void sprinkle(Chunk chunk, int attempts, java.util.function.Predicate<Biome> biomes) {
         if (attempts <= 0) {
             return;
         }
@@ -189,22 +198,34 @@ public final class WorldShaper implements Listener {
         int baseZ = chunk.getZ() << 4;
 
         for (int i = 0; i < attempts; i++) {
-            // NO_LEAVES, or the "surface" under a swamp oak is its canopy — and under the
-            // canopy is the only shade where a mushroom survives daylight in the first place.
+            // NO_LEAVES, or the "surface" under a swamp oak is its canopy.
             Block surface = world.getHighestBlockAt(
                     baseX + random.nextInt(16), baseZ + random.nextInt(16),
                     HeightMap.MOTION_BLOCKING_NO_LEAVES);
-            if (!biomes.contains(surface.getBiome())) {
+            if (!biomes.test(surface.getBiome())) {
                 continue;
             }
             Material ground = surface.getType();
             if (ground != Material.GRASS_BLOCK && ground != Material.MUD
-                    && ground != Material.PODZOL) {
+                    && ground != Material.PODZOL && ground != Material.DIRT
+                    && ground != Material.COARSE_DIRT && ground != Material.ROOTED_DIRT
+                    && ground != Material.MOSS_BLOCK) {
                 continue;
             }
             Block spot = surface.getRelative(BlockFace.UP);
-            if (!spot.getType().isAir() || spot.getLightFromSky() > 12) {
+            Material there = spot.getType();
+            boolean tall = there == Material.TALL_GRASS || there == Material.LARGE_FERN;
+            boolean grass = there == Material.SHORT_GRASS || there == Material.FERN
+                    || there == Material.DEAD_BUSH;
+            if (!there.isAir() && !grass && !tall) {
                 continue;
+            }
+            if (tall) {
+                // the top half of a two-block plant must go with the bottom
+                Block upper = spot.getRelative(BlockFace.UP);
+                if (upper.getType() == there) {
+                    upper.setType(Material.AIR, false);
+                }
             }
             spot.setType(random.nextBoolean() ? Material.RED_MUSHROOM : Material.BROWN_MUSHROOM,
                     false);

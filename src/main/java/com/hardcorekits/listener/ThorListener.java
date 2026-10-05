@@ -7,12 +7,17 @@ import com.hardcorekits.kit.kits.ThorKit;
 import com.hardcorekits.util.CooldownBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import com.hardcorekits.util.Damage;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.entity.LightningStrike;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
@@ -57,6 +62,10 @@ public final class ThorListener implements Listener {
     private final Map<UUID, Integer> charges = new HashMap<>();
     /** When a spent Thor may strike again. */
     private final Map<UUID, Long> readyAt = new HashMap<>();
+    /** Bolt entity -> the Thor who called it, so his own strike never hurts him. */
+    private final Map<UUID, UUID> bolts = new HashMap<>();
+    /** The Thor whose netherrack charge is going off right now; set only for that one call. */
+    private UUID detonating;
 
     public ThorListener(HardcoreGames plugin, GameManager game, KitRegistry kits) {
         this.plugin = plugin;
@@ -68,6 +77,7 @@ public final class ThorListener implements Listener {
     public void clearCooldowns() {
         charges.clear();
         readyAt.clear();
+        bolts.clear();
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -99,10 +109,14 @@ public final class ThorListener implements Listener {
         Block top = world.getBlockAt(x, topY, z);
         Location strike = top.getLocation().add(0.5D, 1.0D, 0.5D);
 
-        world.strikeLightning(strike);
+        LightningStrike bolt = world.strikeLightning(strike);
+        UUID boltId = bolt.getUniqueId();
+        bolts.put(boltId, player.getUniqueId());
+        // A bolt lives well under a second; five is a generous broom.
+        Bukkit.getScheduler().runTaskLater(plugin, () -> bolts.remove(boltId), 100L);
 
         if (top.getType() == Material.NETHERRACK) {
-            detonate(world, strike);
+            detonate(world, strike, player);
             return;
         }
 
@@ -146,10 +160,42 @@ public final class ThorListener implements Listener {
     }
 
     /** Striking your own netherrack again turns it into a charge. */
-    private void detonate(World world, Location strike) {
+    private void detonate(World world, Location strike, Player caster) {
         world.getBlockAt(strike).setType(Material.AIR);
-        world.createExplosion(strike,
-                (float) (TNT_POWER * game.config().thorNetherrackTntFraction()), true, true);
+        // The blast deals its damage inside this call, so marking the caster for exactly its
+        // length is enough to tell his own charge from anyone else's explosion.
+        detonating = caster.getUniqueId();
+        try {
+            world.createExplosion(strike,
+                    (float) (TNT_POWER * game.config().thorNetherrackTntFraction()), true, true);
+        } finally {
+            detonating = null;
+        }
+    }
+
+    /**
+     * Thor is not hurt by his own strike: not by the bolt he called, and not by the blast of
+     * his own netherrack charge.
+     *
+     * <p>That is the whole exemption. The bolt still sets him alight and that fire still
+     * burns him, and every other explosion and every other Thor's lightning hurts him like
+     * anyone else — he is not fireproof and not blast-proof, he just cannot smite himself.
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void onOwnStrike(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player victim)) {
+            return;
+        }
+        UUID id = victim.getUniqueId();
+        if (id.equals(detonating) && Damage.isExplosion(event)) {
+            event.setCancelled(true);
+            return;
+        }
+        if (event instanceof EntityDamageByEntityEvent by
+                && by.getDamager() instanceof LightningStrike bolt
+                && id.equals(bolts.get(bolt.getUniqueId()))) {
+            event.setCancelled(true);
+        }
     }
 
     /**
@@ -169,8 +215,8 @@ public final class ThorListener implements Listener {
     /**
      * Pushes everyone near the strike away from it, harder on a high strike.
      *
-     * <p>Thor is exempt from his own shove. He still takes the lightning's damage like anyone
-     * else — what he does not do is get thrown off his own ledge by a strike he aimed.
+     * <p>Thor is exempt from his own shove, as he is from his own bolt's damage: he is never
+     * thrown off his own ledge by a strike he aimed.
      */
     private void shove(Location strike, Player caster, boolean high) {
         double radius = game.config().thorRadius();

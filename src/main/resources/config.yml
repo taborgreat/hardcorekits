@@ -52,7 +52,9 @@ version-name: '26.2-26.3'
 # Announced on the standard ladder: every minute, 30, 15, 10, then 5 down.
 countdown-seconds: 180
 
-# Grace period after the drop. Player-dealt damage is blocked; environment damage is not.
+# Grace period after the drop. Nobody takes damage of any kind: not from players, falls,
+# fire, mobs or kit abilities. Kit abilities themselves work throughout, except the two that
+# take another player prisoner (Gladiator's arena, Timelord's freeze), which wait for PvP.
 invulnerable-seconds: 120
 
 # The map boundary. There is no wall and no vanilla border — you just take heavy damage
@@ -99,6 +101,11 @@ combat-log-seconds: 3
 
 # Compass refuses to lock on to anyone closer than this, so it cannot be used at knife range.
 compass-min-distance: 25
+
+# Ticks before the same player's compass answers another click (20 ticks = 1 second). Either
+# mouse button works, on a block or in the air, and one physical click can reach the server as
+# more than one event — a swing while mining, a missed punch. This keeps it to one answer.
+compass-cooldown-ticks: 10
 
 # The build ceiling. Blocks cannot be placed above this Y, which stops the unreachable sky
 # pillar without taking towering away — breaking line of sight, getting out of a melee and
@@ -210,10 +217,20 @@ combat:
     # is most of why combos feel different.
     vertical: 0.4
     vertical-limit: 0.4
-    # Added per knockback level along the attacker's facing, where sprinting is worth a level.
-    # 1.8's number, and play-tested to feel right at exactly that.
+    # Added per level of the Knockback ENCHANT along the attacker's facing. 1.8's number.
+    # This is what makes a Grandpa's stick what it is.
     extra-horizontal: 0.5
     extra-vertical: 0.1
+    # What SPRINTING adds to a hit, separately from the enchant. 1.8 counted a sprint as a
+    # whole enchant level (0.5), which more than doubles the push (0.4 becomes 0.9) and throws
+    # the victim about two and a half times as far. Because keep-sprint above gives a sprinting
+    # attacker that bonus on every hit instead of only the first, it showed up as a "random"
+    # huge knockback: any click where the attacker happened to be running forward. Measured,
+    # not guessed: the server never stacks pushes, so this bonus was the only thing that made
+    # one hit bigger than another. Lowered so a sprint hit is firmer, not a launch.
+    # Raise sprint-horizontal toward 0.5 for the old 1.8 feel, lower toward 0 to remove it.
+    sprint-horizontal: 0.2
+    sprint-vertical: 0.05
 
 kits:
   barbarian:
@@ -688,13 +705,18 @@ worldgen:
   # not. Only newly GENERATED worlds are affected, so this rides the world rotation: the world
   # currently running keeps whatever terrain it was born with.
   no-oceans: true
-  # Extra mushrooms planted per swamp chunk as chunks load — attempts, not a quota: only
-  # shaded, valid spots take one, exactly where vanilla mushrooms survive. Soup is the healing
-  # economy and the map is centred on a swamp, so the swamp should feed it. 0 turns it off.
-  swamp-mushrooms-per-chunk: 12
-  # The same for forest floors: dark forests, taigas, jungles, birch and oak woods. Fewer,
-  # and the shade rule still applies, so open ground gets nothing. 0 turns it off.
-  forest-mushrooms-per-chunk: 4
+  # Extra mushrooms planted per swamp chunk as chunks load. Attempts, not a quota: one that
+  # lands on water, sand or a tree is lost, so about half of them take. They go on any soil,
+  # in the open too, and replace grass and ferns. Soup is the healing economy and the map is
+  # centred on a swamp, so the swamp should feed it. 0 turns it off.
+  swamp-mushrooms-per-chunk: 40
+  # The same for forest floors: dark forests, taigas, jungles, birch and oak woods. 0 turns
+  # it off.
+  forest-mushrooms-per-chunk: 20
+  # And for everywhere else with soil: plains, meadows, savannas, hillsides. Fewer, but it
+  # means wherever a player lands there is some soup to be found within a short walk rather
+  # than none at all. Deserts and beaches stay bare, since sand takes nothing. 0 turns it off.
+  open-mushrooms-per-chunk: 8
 
 # How long before invincibility ends the door closes on late joiners. People can connect and
 # be dropped into a running match (kitless) right up to this cutoff; the buffer exists so

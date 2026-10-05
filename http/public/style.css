@@ -1093,3 +1093,79 @@ details.faq summary:hover .faq-q {
 .site-footer span {
   display: block;
 }
+
+/* profile page: kits and movies. Two buttons switch between them on a phone; a wide
+   screen has room for both, side by side. */
+.profile-tabs {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 18px auto 0;
+  max-width: 780px;
+}
+.profile-tab {
+  flex: 1 1 0;
+  max-width: 240px;
+  padding: 12px 8px;
+  font-size: 0.72rem;
+  background: #2a2a2a;
+  color: #bbb;
+  border: 2px solid #000;
+}
+.profile-tab:hover { background: #3a3a3a; }
+.profile-tab.is-on,
+.profile-tab.is-on:hover {
+  background: #3fa63f;
+  color: #fff;
+}
+.profile-panes.both .profile-pane { display: none; }
+.profile-panes.both .profile-pane.is-on { display: block; }
+/* the button already names the section */
+.profile-panes.both .profile-pane > h2 { display: none; }
+
+.film-list {
+  list-style: none;
+  background: rgba(0, 0, 0, 0.86);
+  border: 2px solid #000;
+  padding: 6px 22px;
+  margin: 14px auto;
+  max-width: 720px;
+  text-align: left;
+}
+.film-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.film-list li:last-child { border-bottom: 0; }
+.film-list a { overflow-wrap: anywhere; }
+.film-list .muted { opacity: 0.6; font-size: 0.85em; white-space: nowrap; }
+.film-none { max-width: 720px; text-align: center; }
+.profile-panes.both .film-none { max-width: none; }
+
+@media (min-width: 1100px) {
+  .profile-tabs { display: none; }
+  /* wider than the page column: the kit table and the movie list each get a real width */
+  .profile-panes.both {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+    width: min(1240px, 94vw);
+    margin-left: 50%;
+    transform: translateX(-50%);
+  }
+  .profile-panes.both .profile-pane,
+  .profile-panes.both .profile-pane.is-on { display: block; }
+  .profile-panes.both .profile-pane > h2 { display: block; }
+  .profile-panes.both .kit-table,
+  .profile-panes.both .film-list { max-width: none; width: 100%; }
+}
+
+@media (max-width: 600px) {
+  .film-list { padding: 4px 14px; }
+  .profile-tab { font-size: 0.66rem; padding: 13px 6px; }
+}

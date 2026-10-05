@@ -90,13 +90,8 @@ public final class FishermanListener implements Listener {
             return;
         }
 
-        // Hooking is not damage, but hauling someone across the map during the grace period is
-        // still a fight — so the reel only works once PvP does.
-        if (!game.state().isPvpEnabled()) {
-            fisher.sendMessage(Component.text("The line goes slack, nobody can be reeled in yet.",
-                    NamedTextColor.AQUA));
-            return;
-        }
+        // The reel works during invincibility too. The hook's sliver of damage below simply
+        // does not land then, like any other damage.
         if (!game.isAlive(victim)) {
             return;
         }

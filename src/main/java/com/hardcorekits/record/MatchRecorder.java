@@ -30,6 +30,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.FireworkExplodeEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerAnimationEvent;
@@ -406,6 +407,7 @@ public final class MatchRecorder implements Listener {
         World world = game.config().world();
         worldName = world == null ? null : world.getName();
         index.clear();
+        highlights.clear();
         roster.clear();
         slotOwners.clear();
         held.clear();
@@ -1010,6 +1012,92 @@ public final class MatchRecorder implements Listener {
             broken.add(entry);
         }
         line.add("blocks", broken);
+        write(line);
+    }
+
+    /** How many moments a player may mark in one match. */
+    private static final int MAX_HIGHLIGHTS = 3;
+    private final Map<UUID, Integer> highlights = new HashMap<>();
+
+    /**
+     * /highlight: a player marks the last few seconds as something the film should look at,
+     * with a few words on why. It is one more event in the recording, so it is deleted with it.
+     *
+     * @return the line to show the player
+     */
+    public String highlight(Player player, String why) {
+        Integer slot = participant(player);
+        if (out == null || slot == null) {
+            return "You can only highlight during a match you are playing in.";
+        }
+        int used = highlights.getOrDefault(player.getUniqueId(), 0);
+        if (used >= MAX_HIGHLIGHTS) {
+            return "You have used all " + MAX_HIGHLIGHTS + " highlights this game.";
+        }
+        highlights.put(player.getUniqueId(), used + 1);
+        JsonObject line = event("highlight");
+        line.addProperty("p", slot);
+        position(line, player.getLocation());
+        line.addProperty("text", why.length() > 160 ? why.substring(0, 160) : why);
+        write(line);
+        return "Marked for the film (" + (used + 1) + "/" + MAX_HIGHLIGHTS + ").";
+    }
+
+    // A stew drunk in a fight is the heartbeat of this game's PvP: good players hotkey through
+    // a whole bar of them. SoupListener cancels the click and swaps the stew for a bowl, so the
+    // drink is only visible as a before/after: stew in the hand going in, a bowl coming out.
+    private java.util.UUID stewClick;
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onStewClick(org.bukkit.event.player.PlayerInteractEvent event) {
+        stewClick = null;
+        if (out == null || event.getHand() == null || event.getItem() == null
+                || event.getItem().getType() != org.bukkit.Material.MUSHROOM_STEW) {
+            return;
+        }
+        org.bukkit.event.block.Action action = event.getAction();
+        if (action == org.bukkit.event.block.Action.RIGHT_CLICK_AIR
+                || action == org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) {
+            stewClick = event.getPlayer().getUniqueId();
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onStewDrunk(org.bukkit.event.player.PlayerInteractEvent event) {
+        Player player = event.getPlayer();
+        if (out == null || stewClick == null || !stewClick.equals(player.getUniqueId()) || event.getHand() == null) {
+            return;
+        }
+        stewClick = null;
+        org.bukkit.inventory.ItemStack now = player.getInventory().getItem(event.getHand());
+        if (now == null || now.getType() != org.bukkit.Material.BOWL) {
+            return; // full health and full hunger: the stew was kept
+        }
+        Integer slot = participant(player);
+        if (slot == null) {
+            return;
+        }
+        JsonObject line = event("stew");
+        line.addProperty("p", slot);
+        line.addProperty("hp", Math.round(player.getHealth() * 10.0) / 10.0);
+        write(line);
+    }
+
+    /** The winner's send-off: every burst over the cake tower, with its colours. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onFirework(FireworkExplodeEvent event) {
+        if (out == null) {
+            return;
+        }
+        JsonObject line = event("firework");
+        position(line, event.getEntity().getLocation());
+        JsonArray colours = new JsonArray();
+        for (org.bukkit.FireworkEffect effect : event.getEntity().getFireworkMeta().getEffects()) {
+            for (org.bukkit.Color colour : effect.getColors()) {
+                colours.add(colour.asRGB());
+            }
+        }
+        line.add("colors", colours);
         write(line);
     }
 
