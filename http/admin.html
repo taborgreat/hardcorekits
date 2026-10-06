@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Clip Publisher</title>
+  <link rel="stylesheet" href="/style.css?v=84">
+  <style>
+    /* The admin page is ours only: plain dark panels, no banner art. */
+    .admin h1 { margin-bottom: 4px; }
+    .admin .sub { color: #9a9a9a; margin: 0 auto 18px; max-width: 780px; text-align: center; }
+    .acct { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; max-width: 780px; margin: 0 auto; }
+    @media (max-width: 600px) { .acct { grid-template-columns: 1fr; } }
+    .acct .panel { margin: 0; }
+    .acct h2 { display: flex; align-items: center; gap: 10px; }
+    .who { display: flex; align-items: center; gap: 12px; min-height: 56px; margin: 8px 0 12px; }
+    .who img { width: 48px; height: 48px; border: 2px solid #000; background: #222; object-fit: cover; }
+    .who .name { font-weight: bold; }
+    .who .muted { color: #9a9a9a; font-size: 0.85em; display: block; }
+    .acts { display: flex; flex-wrap: wrap; gap: 8px; }
+    .acts .mc-button { font-size: 0.6rem; padding: 10px 12px; }
+    .acts .mc-button[disabled] { opacity: 0.45; cursor: default; }
+    .state { margin: 10px 0 0; font-size: 0.9em; min-height: 1.4em; }
+    .state.ok { color: #3fa63f; }
+    .state.bad { color: #ff5555; }
+    .log { max-width: 780px; margin: 14px auto; background: #000; border: 2px solid #000; padding: 12px 16px; font: 13px/1.5 ui-monospace, monospace; color: #bbb; white-space: pre-wrap; min-height: 3em; max-height: 14em; overflow: auto; }
+    table.recent { width: 100%; max-width: 780px; margin: 0 auto; font-size: 0.85em; }
+    table.recent td, table.recent th { padding: 6px 8px; text-align: left; border-bottom: 1px solid #222; vertical-align: top; }
+    table.recent a { overflow-wrap: anywhere; }
+    .latest { max-width: 780px; margin: 14px auto 0; }
+  </style>
+</head>
+<body class="admin">
+<main>
+  <h1>Clip Publisher</h1>
+  <p class="sub">Shares match clips from the server to our accounts. YouTube goes first; the same clip is then offered to the accounts connected here.</p>
+
+  <div class="acct" id="acct"></div>
+
+  <section class="panel latest" id="latest-panel">
+    <h2>Newest clip</h2>
+    <p id="latest">Loading…</p>
+    <div class="acts">
+      <button type="button" class="mc-button" id="send-tiktok">Send to TikTok</button>
+      <button type="button" class="mc-button" id="send-instagram">Send to Instagram</button>
+    </div>
+    <p class="state" id="send-state"></p>
+    <p class="muted" style="margin:14px 0 6px">Caption (the same words as on YouTube). A TikTok draft arrives without one, so paste this in the app:</p>
+    <div class="log" id="caption" style="margin:0;max-height:10em"></div>
+    <div class="acts" style="margin-top:8px"><button type="button" class="mc-button" id="copy-caption">Copy caption</button></div>
+  </section>
+
+  <div class="log" id="log">Ready.</div>
+
+  <section class="panel">
+    <h2>Recent clips</h2>
+    <table class="recent" id="recent"><tbody><tr><td>Loading…</td></tr></tbody></table>
+  </section>
+</main>
+
+<script src="/site.js?v=2"></script>
+<script>
+  const esc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const logEl = document.getElementById('log');
+  function log(line) { logEl.textContent += '\n' + new Date().toLocaleTimeString() + '  ' + line; logEl.scrollTop = logEl.scrollHeight; }
+  async function api(path, body) {
+    const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {});
+    return r.json();
+  }
+
+  function card(name, st) {
+    const label = window.HG_SOCIAL_NAMES[name];
+    const connected = st && st.connected;
+    const who = connected
+      ? '<div class="who">' + (st.avatar_url ? '<img src="' + esc(st.avatar_url) + '" alt="">' : '<span class="social-icon" style="width:48px;height:48px"></span>')
+        + '<div><span class="name">' + esc(st.account || st.username || 'connected') + '</span>'
+        + '<span class="muted">' + (name === 'tiktok' ? (st.mode === 'direct' ? 'posts directly' : 'clips land in the drafts inbox; you post them in the app') : 'posts Reels') + '</span></div></div>'
+      : '<div class="who"><div><span class="name">Not connected</span><span class="muted">' + (st && st.set_up ? 'keys are in place; connect the account' : 'put the app keys in config/publish.json first') + '</span></div></div>';
+    return '<section class="panel" data-platform="' + name + '"><h2>' + window.hgSocialIcon(name) + ' ' + label + '</h2>' + who
+      + '<div class="acts"><button type="button" class="mc-button connect" ' + (st && st.set_up ? '' : 'disabled') + '>' + (connected ? 'Reconnect' : 'Connect ' + label) + '</button></div>'
+      + '<p class="state"></p></section>';
+  }
+
+  async function refresh() {
+    const st = await api('/api/admin/status');
+    if (!st || st.ok === false) { log('status failed: ' + (st && st.error)); return; }
+    document.getElementById('acct').innerHTML = card('tiktok', st.tiktok) + card('instagram', st.instagram);
+    for (const b of document.querySelectorAll('.connect')) b.addEventListener('click', connect);
+    document.getElementById('latest').innerHTML = st.latest
+      ? '<b>' + esc(st.latest.title) + '</b><br><a href="' + esc(st.latest.youtube) + '" target="_blank" rel="noopener">' + esc(st.latest.youtube) + '</a> · uploaded ' + new Date(st.latest.at).toLocaleString()
+      : 'No Short has been uploaded yet.';
+    document.getElementById('caption').textContent = st.latest ? (st.latest.caption || '') : '';
+    document.getElementById('send-tiktok').disabled = !(st.latest && st.tiktok.connected);
+    document.getElementById('send-instagram').disabled = !(st.latest && st.instagram.connected);
+    const rows = (st.recent || []).map((r) => '<tr><td>' + esc(r.title) + '</td><td><a href="' + esc(r.youtube) + '" target="_blank" rel="noopener">YouTube</a></td><td>' + cell(r.tiktok) + '</td><td>' + cell(r.instagram) + '</td></tr>');
+    document.getElementById('recent').innerHTML = '<thead><tr><th>Clip</th><th></th><th>TikTok</th><th>Instagram</th></tr></thead><tbody>' + (rows.join('') || '<tr><td colspan="4">Nothing sent yet.</td></tr>') + '</tbody>';
+  }
+  function cell(v) {
+    if (!v || v === '-') return '<span class="muted">—</span>';
+    if (/^https?:/.test(v)) return '<a href="' + esc(v) + '" target="_blank" rel="noopener">posted</a>';
+    if (v === 'inbox') return 'in drafts';
+    if (v === 'posted') return 'posted';
+    return '<span style="color:#ff5555">' + esc(v) + '</span>';
+  }
+
+  async function connect(e) {
+    const sec = e.target.closest('section');
+    const platform = sec.dataset.platform;
+    const state = sec.querySelector('.state');
+    state.className = 'state'; state.textContent = 'Opening ' + window.HG_SOCIAL_NAMES[platform] + '…';
+    const r = await api('/api/admin/connect/' + platform, {});
+    if (!r.ok) { state.className = 'state bad'; state.textContent = r.error || 'could not start'; log(platform + ': ' + (r.error || 'could not start')); return; }
+    log(platform + ': sign-in opened; approve it on the ' + window.HG_SOCIAL_NAMES[platform] + ' page, then come back here');
+    state.textContent = 'Approve on the ' + window.HG_SOCIAL_NAMES[platform] + ' page, then come back here.';
+    window.open(r.url, '_blank', 'noopener');
+    // the sign-in page tells us when it is done
+    const poll = setInterval(async () => { const st = await api('/api/admin/status'); if (st && st[platform] && st[platform].connected) { clearInterval(poll); log(platform + ': connected as ' + (st[platform].account || st[platform].username)); refresh(); } }, 4000);
+    setTimeout(() => clearInterval(poll), 15 * 60_000);
+  }
+
+  async function send(platform) {
+    const state = document.getElementById('send-state');
+    state.className = 'state'; state.textContent = 'Sending to ' + window.HG_SOCIAL_NAMES[platform] + '… (it fetches the clip itself; a minute or two)';
+    log(platform + ': sending the newest clip');
+    const start = await api('/api/admin/send', { to: [platform], again: true });
+    if (!start.ok) { state.className = 'state bad'; state.textContent = start.error || 'could not start'; return; }
+    const timer = setInterval(async () => {
+      const j = await api('/api/admin/job/' + start.job);
+      if (!j || !j.done) return;
+      clearInterval(timer);
+      const r = j.result || {};
+      for (const n of r.notes || []) log(n);
+      const p = r[platform];
+      if (p && p.ok) { state.className = 'state ok'; state.textContent = platform === 'tiktok' && p.status === 'inbox' ? 'Sent. The clip is in the TikTok inbox as a draft: open the app to caption and post it.' : 'Sent: ' + (p.url || p.status || 'done'); }
+      else { state.className = 'state bad'; state.textContent = (p && p.error) || r.error || 'failed'; }
+      refresh();
+    }, 3000);
+  }
+  document.getElementById('copy-caption').addEventListener('click', async () => {
+    const t = document.getElementById('caption').textContent;
+    try { await navigator.clipboard.writeText(t); log('caption copied'); } catch { log('could not copy; select the text and copy it by hand'); }
+  });
+  document.getElementById('send-tiktok').addEventListener('click', () => send('tiktok'));
+  document.getElementById('send-instagram').addEventListener('click', () => send('instagram'));
+  refresh();
+</script>
+</body>
+</html>

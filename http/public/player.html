@@ -22,7 +22,9 @@
   <title>Minecraft Hardcore Games: Player</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
-  <link rel="stylesheet" href="/style.css?v=83">
+  <link rel="stylesheet" href="/style.css?v=84">
+  <!-- loaded before the page script below: it draws the platform logos in the movie list -->
+  <script src="/site.js?v=2"></script>
 </head>
 <body class="swords">
 <main>
@@ -32,7 +34,7 @@
 
   <header class="banner">
     <div class="alpha"><span class="year">2026</span> Alpha v0.1</div>
-    <nav><a href="/">Home</a><a href="/news.html">News</a><a href="/stats.html">Stats</a><a href="/kits.html">Kits</a><a href="/faq.html">FAQ</a><a href="https://www.youtube.com/@hardcorepvpcom/shorts" target="_blank" rel="noopener">Watch</a><a href="https://discord.gg/78AUNtv42z" target="_blank" rel="noopener">Discord</a></nav>
+    <nav><a href="/">Home</a><a href="/stats.html">Stats</a><a href="/news.html">News</a><a href="/kits.html">Kits</a><a href="/faq.html">FAQ</a><a href="https://www.youtube.com/@hardcorepvpcom/shorts" target="_blank" rel="noopener">Watch</a><a href="https://discord.gg/78AUNtv42z" target="_blank" rel="noopener">Discord</a></nav>
   </header>
   <div id="page" class="panel">Loading…</div>
 
@@ -58,12 +60,10 @@
       }
       document.title = 'Minecraft Hardcore Games: ' + name;
 
+      // A player with no match stats yet can still be in films (a staged story, a spectator
+      // the camera caught), so the page goes on without the numbers.
       const res = await fetch('/api/stats?player=' + encodeURIComponent(name));
-      if (!res.ok) {
-        el.textContent = 'No stats for "' + name + '". They may not have played a match yet.';
-        return;
-      }
-      const p = await res.json();
+      const p = res.ok ? await res.json() : { name, wins: 0, kills: 0, games: 0, kits: {}, noStats: true };
 
       let onlineNames = [];
       try {
@@ -85,7 +85,7 @@
             + '<img class="skin" src="https://mc-heads.net/body/' + encodeURIComponent(p.name)
             + '/140" alt="" onerror="this.style.display=\'none\'">'
             + '</div>';
-      html += '<div class="player-totals">'
+      html += p.noStats ? '<div class="player-totals"><p class="muted">No match stats yet. They may not have played a match.</p></div>' : ('<div class="player-totals">'
             + statRow('Wins', p.wins)
             + statRow('Kills', p.kills)
             + statRow('Games', p.games)
@@ -94,7 +94,7 @@
             + statRow('Win streak', p.streak || 0)
             + statRow('Longest streak', p.bestStreak || 0)
             + statRow('Last online', lastOnline(p, onlineNames))
-            + '</div>';
+            + '</div>');
       html += '</div>';
 
       const kits = Object.entries(p.kits || {})
@@ -122,14 +122,29 @@
         if (Array.isArray(films) && films.length) {
           movieCount = films.length;
           const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+          // One row per film. With more than one place to watch (the shared site.js says which
+          // are live), three logo buttons pick the platform: the titles then lead there, and
+          // films that are not up on it yet step aside.
+          const S = window.HG_SOCIAL || { youtube: 'x' };
+          const NAMES = window.HG_SOCIAL_NAMES || { youtube: 'YouTube', instagram: 'Instagram', tiktok: 'TikTok' };
+          const icon = (k) => (typeof window.hgSocialIcon === 'function' ? window.hgSocialIcon(k) : '');
+          const platforms = ['youtube', 'instagram', 'tiktok'].filter((k) => S[k] || films.some((f) => f.links && f.links[k]));
+          if (platforms.length > 1) {
+            moviesHtml += '<div class="film-filter" role="group" aria-label="Where to watch">'
+              + platforms.map((k, i) => '<button type="button" class="film-platform' + (i === 0 ? ' is-on' : '') + '" data-platform="' + k + '" aria-pressed="' + (i === 0) + '" title="' + NAMES[k] + '">'
+                + icon(k) + '<span>' + NAMES[k] + '</span></button>').join('')
+              + '</div>';
+          }
           moviesHtml += '<ul class="film-list">';
           for (const f of films) {
             const day = f.published ? new Date(f.published).toLocaleDateString() : '';
-            moviesHtml += '<li><a href="' + esc(f.url) + '" target="_blank" rel="noopener">' + esc(f.title) + '</a>'
+            const links = f.links || { youtube: f.url };
+            moviesHtml += '<li' + platforms.map((k) => links[k] ? ' data-' + k + '="' + esc(links[k]) + '"' : '').join('') + '>'
+                  + '<a href="' + esc(f.url) + '" target="_blank" rel="noopener">' + esc(f.title) + '</a>'
                   + '<span class="muted">' + (f.kind === 'match' ? 'match' : 'story') + (f.short ? ' short' : '')
                   + (day ? ' · ' + day : '') + '</span></li>';
           }
-          moviesHtml += '</ul>';
+          moviesHtml += '</ul><p class="film-none film-none-here" hidden>None on this one yet.</p>';
         }
       } catch { /* no movie list: the profile is still complete without it */ }
       if (!moviesHtml) {
@@ -151,6 +166,21 @@
         html += '<div class="profile-panes">' + pane('movies', 'Movies', moviesHtml, true) + '</div>';
       }
       el.outerHTML = '<div>' + html + '</div>';
+
+      for (const b of document.querySelectorAll('.film-platform')) {
+        b.addEventListener('click', () => {
+          const k = b.dataset.platform;
+          for (const o of document.querySelectorAll('.film-platform')) { o.classList.toggle('is-on', o === b); o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); }
+          let shown = 0;
+          for (const li of document.querySelectorAll('.film-list li')) {
+            const href = li.getAttribute('data-' + k);
+            li.hidden = !href;
+            if (href) { li.querySelector('a').href = href; shown++; }
+          }
+          const none = document.querySelector('.film-none-here');
+          if (none) none.hidden = shown > 0;
+        });
+      }
 
       for (const tab of document.querySelectorAll('.profile-tab')) {
         tab.addEventListener('click', () => {

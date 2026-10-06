@@ -31,7 +31,8 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 const TYPES = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript',
                 '.png': 'image/png', '.gif': 'image/gif', '.ico': 'image/x-icon',
                 // robots.txt and sitemap.xml: crawlers ignore them served as octet-stream.
-                '.txt': 'text/plain', '.xml': 'application/xml' };
+                '.txt': 'text/plain', '.xml': 'application/xml',
+                '.svg': 'image/svg+xml', '.mp4': 'video/mp4' };
 
 // ---------------------------------------------------------------- live status cache
 
@@ -110,7 +111,127 @@ function filmsOf(player) {
   return films()
     .filter((f) => (f.players || []).some((n) => String(n).toLowerCase() === want))
     .slice(0, 100)
-    .map((f) => ({ url: f.url, title: f.title, kind: f.kind, short: !!f.short, published: f.published, played: f.played || '' }));
+    // links: every place the film can be watched (the pipeline adds Instagram and TikTok as
+    // those uploads land); url stays the YouTube one
+    .map((f) => ({ url: f.url, links: { youtube: f.url, ...(f.links || {}) }, title: f.title, kind: f.kind, short: !!f.short, published: f.published, played: f.played || '' }));
+}
+
+// ---------------------------------------------------------------- clips for Instagram and TikTok
+
+// Those two do not take an upload: they fetch a finished clip themselves from a public https
+// address. The film pipeline drops each one in its automation/clips/ as <id>.mp4 for a couple
+// of days and hands them https://<site>/clips/<id>.mp4. Served whole or by byte range, never
+// redirected (TikTok refuses redirects), and nothing but those files can be reached here.
+const CLIPS_DIR = process.env.CLIPS_DIR ||
+  require('path').join(require('os').homedir(), 'github', 'mcmovie', 'automation', 'clips');
+function serveClip(req, res, name) {
+  const notFound = () => { res.writeHead(404, { 'Content-Type': 'text/plain' }); res.end('not found'); };
+  // TikTok's ownership check for the /clips/ prefix: a small text file it names, kept in
+  // public/clips/ (nothing else is served from there)
+  if (/^[A-Za-z0-9_-]{1,80}\.txt$/.test(name)) {
+    const f = path.join(PUBLIC_DIR, 'clips', name);
+    if (!fs.existsSync(f)) return notFound();
+    res.writeHead(200, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-cache' });
+    return res.end(fs.readFileSync(f));
+  }
+  if (!/^[A-Za-z0-9_-]{1,64}\.mp4$/.test(name)) return notFound();
+  const file = path.join(CLIPS_DIR, name);
+  let size;
+  try { const st = fs.statSync(file); if (!st.isFile()) return notFound(); size = st.size; } catch { return notFound(); }
+  const head = { 'Content-Type': 'video/mp4', 'Accept-Ranges': 'bytes', 'Cache-Control': 'public, max-age=3600' };
+  const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+  if (m && (m[1] || m[2])) {
+    let start = m[1] ? parseInt(m[1], 10) : size - parseInt(m[2], 10);
+    let end = m[1] && m[2] ? parseInt(m[2], 10) : size - 1;
+    if (!(start >= 0)) start = 0;
+    if (end >= size) end = size - 1;
+    if (start > end) { res.writeHead(416, { 'Content-Range': `bytes */${size}` }); return res.end(); }
+    res.writeHead(206, { ...head, 'Content-Range': `bytes ${start}-${end}/${size}`, 'Content-Length': end - start + 1 });
+    if (req.method === 'HEAD') return res.end();
+    return fs.createReadStream(file, { start, end }).pipe(res);
+  }
+  res.writeHead(200, { ...head, 'Content-Length': size });
+  if (req.method === 'HEAD') return res.end();
+  fs.createReadStream(file).pipe(res);
+}
+
+// ---------------------------------------------------------------- admin: the clip publisher
+
+// A small page for us (hardcorepvp.com/taborgreatadmin, HTTP basic auth, http/admin-secret.json):
+// connect the TikTok and Instagram accounts the clips go to, see which account is connected
+// (name and avatar), and send the newest clip by hand. Everything it does runs the film
+// pipeline's own uploader (mcmovie bin/mcpublish.js) as a separate process, so tokens stay in
+// that pipeline's config on this machine and this server never sees a secret.
+const MCMOVIE_DIR = process.env.MCMOVIE_DIR || require('path').join(require('os').homedir(), 'github', 'mcmovie');
+// The page lives at an address only we know, with a user name and password of Tabor's choosing
+// (http/admin-secret.json: {"user": ..., "password": ...}).
+const ADMIN_PATH = process.env.ADMIN_PATH || '/taborgreatadmin';
+const ADMIN_SECRET_FILE = path.join(__dirname, 'admin-secret.json');
+function adminSecret() { try { return JSON.parse(fs.readFileSync(ADMIN_SECRET_FILE, 'utf8')); } catch { return null; } }
+function adminOk(req) {
+  const secret = adminSecret();
+  if (!secret || !secret.user || !secret.password) return false;
+  const h = req.headers.authorization || '';
+  if (!h.startsWith('Basic ')) return false;
+  const [user, pass] = Buffer.from(h.slice(6), 'base64').toString('utf8').split(/:(.*)/s);
+  return user === secret.user && pass === secret.password;
+}
+function needAuth(res) { res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="hardcorepvp admin"', 'Content-Type': 'text/plain' }); res.end('sign in'); }
+// run the uploader; its last line of stdout is JSON
+function publisher(args, timeoutMs = 15 * 60_000) {
+  return new Promise((resolve) => {
+    require('child_process').execFile(process.execPath, ['bin/mcpublish.js', ...args], { cwd: MCMOVIE_DIR, timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024 }, (err, stdout, stderr) => {
+      const out = String(stdout || '');
+      let data = null;
+      const start = out.indexOf('{');
+      if (start >= 0) { try { data = JSON.parse(out.slice(start)); } catch { /* not JSON */ } }
+      const notes = String(stderr || '').split('\n').filter((l) => l.startsWith('[social]')).map((l) => l.slice(9));
+      if (err && !data) return resolve({ ok: false, error: (String(stderr || '').match(/error: (.*)/) || [, err.message])[1].slice(0, 300), notes });
+      resolve({ ok: !err, ...(data || {}), notes });
+    });
+  });
+}
+const oauthStates = new Map(); // state -> { platform, expires }
+const adminJobs = new Map(); // id -> { done, result }
+function readBody(req) {
+  return new Promise((resolve) => { let b = ''; req.on('data', (c) => { b += c; if (b.length > 65536) req.destroy(); }); req.on('end', () => { try { resolve(b ? JSON.parse(b) : {}); } catch { resolve({}); } }); });
+}
+async function admin(req, res, url) {
+  if (url.pathname === ADMIN_PATH) {
+    if (!adminOk(req)) return needAuth(res);
+    res.writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' });
+    return res.end(fs.readFileSync(path.join(__dirname, 'admin.html')));
+  }
+  // the sign-in page finishing a sign-in: no password here, the one-time state is the proof
+  if (url.pathname === '/api/oauth/finish' && req.method === 'POST') {
+    const { code, state } = await readBody(req);
+    const pending = oauthStates.get(String(state || ''));
+    for (const [k, v] of oauthStates) if (v.expires < Date.now()) oauthStates.delete(k);
+    if (!pending || pending.expires < Date.now() || !code) return json(res, 400, JSON.stringify({ ok: false, error: 'this sign-in was not started from the admin page, or it took too long; start it again' }));
+    oauthStates.delete(String(state));
+    return json(res, 200, JSON.stringify(await publisher(['social', 'finish', pending.platform, '--code', String(code)], 120_000)));
+  }
+  if (!url.pathname.startsWith('/api/admin/')) return false;
+  if (!adminOk(req)) return needAuth(res);
+  if (url.pathname === '/api/admin/status') return json(res, 200, JSON.stringify(await publisher(['social', 'status'], 60_000)));
+  const connect = /^\/api\/admin\/connect\/(tiktok|instagram)$/.exec(url.pathname);
+  if (connect && req.method === 'POST') {
+    const state = connect[1] + '.' + require('crypto').randomBytes(12).toString('hex');
+    oauthStates.set(state, { platform: connect[1], expires: Date.now() + 15 * 60_000 });
+    return json(res, 200, JSON.stringify(await publisher(['social', 'connect', connect[1], '--state', state], 60_000)));
+  }
+  if (url.pathname === '/api/admin/send' && req.method === 'POST') {
+    const body = await readBody(req);
+    const to = Array.isArray(body.to) ? body.to.filter((p) => p === 'tiktok' || p === 'instagram') : [];
+    const id = require('crypto').randomBytes(6).toString('hex');
+    const job = { id, started: new Date().toISOString(), done: false, result: null };
+    adminJobs.set(id, job);
+    publisher(['social', 'send', ...(to.length ? ['--to', to.join(',')] : []), ...(body.again ? ['--again'] : [])]).then((r) => { job.done = true; job.result = r; });
+    return json(res, 200, JSON.stringify({ ok: true, job: id }));
+  }
+  const jobm = /^\/api\/admin\/job\/([a-f0-9]{12})$/.exec(url.pathname);
+  if (jobm) { const j = adminJobs.get(jobm[1]); return json(res, j ? 200 : 404, JSON.stringify(j || { error: 'no such job' })); }
+  return json(res, 404, '{"error":"unknown admin call"}');
 }
 
 // ---------------------------------------------------------------- stats straight from disk
@@ -184,6 +305,8 @@ http.createServer(async (req, res) => {
       if (!player) return json(res, 400, '{"error":"pass ?player=<name>"}');
       return json(res, 200, JSON.stringify(filmsOf(player)));
     }
+    if (url.pathname.startsWith('/clips/')) return serveClip(req, res, url.pathname.slice('/clips/'.length));
+    if (url.pathname === ADMIN_PATH || url.pathname.startsWith('/api/admin/') || url.pathname === '/api/oauth/finish') { if (await admin(req, res, url) !== false) return; }
     return serveStatic(url.pathname, res);
   } catch (e) {
     return json(res, 502, JSON.stringify({ error: 'game server unreachable' }));

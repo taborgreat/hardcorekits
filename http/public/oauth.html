@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Sign-in code</title>
+  <style>
+    body { background: #111; color: #ddd; font: 16px/1.5 system-ui, sans-serif; max-width: 640px; margin: 12vh auto; padding: 0 20px; }
+    code { display: block; padding: 14px; background: #000; border: 2px solid #333; word-break: break-all; user-select: all; }
+    .muted { color: #888; }
+  </style>
+</head>
+<body>
+  <!-- Where Instagram and TikTok send the browser back after an account approves the film
+       uploader. It only shows the one-time code so it can be pasted into the uploader on the
+       film machine; nothing is stored or sent anywhere from this page. -->
+  <h1 id="title">Sign-in code</h1>
+  <p id="what"></p>
+  <code id="code"></code>
+  <p class="muted">The code works once and for a short time. If it has expired, start the sign-in again.</p>
+  <script>
+    // Started from the admin page: finish the sign-in here (the site exchanges the code through
+    // the uploader on the film machine). Started from the command line: just show the code.
+    const q = new URLSearchParams(location.search);
+    const code = q.get('code');
+    const state = q.get('state') || '';
+    const err = q.get('error_description') || q.get('error_reason') || q.get('error');
+    const title = document.getElementById('title'); const what = document.getElementById('what'); const codeEl = document.getElementById('code');
+    const platform = /^(tiktok|instagram)\./.test(state) ? state.split('.')[0] : null;
+    if (code && platform) {
+      title.textContent = 'Finishing sign-in…';
+      what.textContent = 'Connecting the ' + (platform === 'tiktok' ? 'TikTok' : 'Instagram') + ' account.';
+      codeEl.remove();
+      fetch('/api/oauth/finish', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code, state }) })
+        .then((r) => r.json())
+        .then((r) => {
+          if (r.ok) { title.textContent = 'Connected'; what.innerHTML = 'Connected as <b></b>. You can close this tab and go back to the admin page.'; what.querySelector('b').textContent = r.account || 'the account'; }
+          else { title.textContent = 'Could not finish'; what.textContent = r.error || 'unknown error'; }
+        })
+        .catch(() => { title.textContent = 'Could not finish'; what.textContent = 'The site did not answer.'; });
+    } else if (code) {
+      what.textContent = 'Approved. Paste this code (or this page\'s whole address) into the uploader:';
+      codeEl.textContent = code.replace(/#_$/, '');
+    } else {
+      title.textContent = err ? 'Sign-in was not approved' : 'Nothing to show';
+      what.textContent = err || 'This page only shows a code after an Instagram or TikTok sign-in.';
+      codeEl.remove();
+    }
+  </script>
+</body>
+</html>

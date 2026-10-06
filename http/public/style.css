@@ -1192,3 +1192,99 @@ details.faq summary:hover .faq-q {
   .film-list { padding: 4px 14px; }
   .profile-tab { font-size: 0.66rem; padding: 13px 6px; }
 }
+
+/* ---------------------------------------------------------------- where to watch
+   The three platform marks (site.js): in the footer, in the Watch menu, and as the filter
+   over a player's movies. One icon style everywhere, drawn in the text colour. */
+.social-icon {
+  width: 1.25em;
+  height: 1.25em;
+  fill: currentColor;
+  vertical-align: -0.25em;
+}
+.site-footer .social-row {
+  display: inline-flex;
+  gap: 4px;
+  margin: 0 6px;
+  vertical-align: middle;
+}
+.site-footer .social-row a {
+  margin: 0 6px;
+  font-size: 1.35em;
+  line-height: 1;
+}
+
+/* Watch in the nav: a button that looks like the links beside it and opens a small panel. */
+.watch {
+  position: relative;
+  display: inline-block;
+}
+.watch-toggle {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 2px 4px;
+  cursor: pointer;
+  text-shadow: inherit;
+}
+.banner nav .watch-toggle { color: #000; text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.35); }
+.banner nav .watch-toggle:hover { color: #5a3410; }
+.watch-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  min-width: 190px;
+  padding: 6px;
+  background: rgba(0, 0, 0, 0.94);
+  border: 2px solid #000;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1rem;
+  text-shadow: none;
+}
+.watch.is-open .watch-menu { display: block; }
+.watch-menu a,
+.banner nav .watch-menu a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  color: #e8e8e8;
+  text-decoration: none;
+  text-shadow: none;
+  white-space: nowrap;
+}
+.watch-menu a:hover,
+.banner nav .watch-menu a:hover { background: #2a2a2a; color: #fff; }
+
+/* A player's movies: pick the platform. */
+.film-filter {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 12px;
+}
+.film-platform {
+  flex: 1 1 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 6px;
+  font: inherit;
+  font-size: 0.85em;
+  color: #bbb;
+  background: #2a2a2a;
+  border: 2px solid #000;
+  cursor: pointer;
+}
+.film-platform:hover { background: #3a3a3a; }
+.film-platform.is-on { background: #3fa63f; color: #fff; }
+@media (max-width: 600px) {
+  .film-platform span { display: none; } /* logos only on a phone */
+  .film-platform { padding: 11px 6px; font-size: 1.05em; }
+  .watch-menu { min-width: 170px; }
+}
