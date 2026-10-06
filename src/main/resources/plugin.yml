@@ -61,6 +61,10 @@ commands:
     description: A server message to everyone, in red, exactly as typed.
     usage: /announce <message>
     permission: hardcoregames.admin
+  studio:
+    description: Film studio only (studio.enabled in config.yml). Gives a kit, or fires its ability.
+    usage: /studio kit <player> <kitId|none> | fire <player> [kitId] [x y z] | clear <player> | reset
+    permission: hardcoregames.admin
 
 permissions:
   hardcoregames.admin:

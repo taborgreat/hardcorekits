@@ -161,6 +161,16 @@ p, table, form, .panel {
   color: #e8e8e8;
 }
 
+/* The one line that sells the films: Minecraft's red, so it stands out from the rules. */
+.about ul.rules li.rec, .about ul.rules li.rec b {
+  color: #ff5555;
+}
+
+.about ul.rules li.rec a {
+  color: #ff5555;
+  text-decoration: underline;
+}
+
 .about .closer {
   color: #3fa63f;
   font-weight: bold;
@@ -650,6 +660,12 @@ form.search input:focus {
   text-align: left;
 }
 
+/* The showcase video at the top of the kits page, about the width of the kit tiles below. */
+.kits-video {
+  max-width: 760px;
+  margin: 14px auto 22px;
+}
+
 /* The one line of instructions above the kits gets room to breathe. */
 #kits-intro {
   max-width: 750px;
@@ -834,6 +850,10 @@ details.faq summary:hover .faq-q {
     margin: 10px auto;
   }
 
+  .kits-video {
+    margin: 0 auto 16px;
+  }
+
   .ip {
     font-size: 0.6rem;
     padding: 10px 12px 8px;
@@ -998,8 +1018,10 @@ details.faq summary:hover .faq-q {
   margin-bottom: 0;
 }
 
-/* An embedded video in a post: full width of the post, 16:9, black bordered like a panel. */
-.post .video {
+/* An embedded video in a post (and the kit showcase at the top of the kits page): full width
+   of the column, 16:9, black bordered like a panel. */
+.post .video,
+.kits-video {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -1008,7 +1030,8 @@ details.faq summary:hover .faq-q {
   background: #000;
 }
 
-.post .video iframe {
+.post .video iframe,
+.kits-video iframe {
   position: absolute;
   inset: 0;
   width: 100%;

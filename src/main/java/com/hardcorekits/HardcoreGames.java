@@ -13,6 +13,9 @@ import com.hardcorekits.record.MatchRecorder;
 import com.hardcorekits.staff.RolesStore;
 import com.hardcorekits.staff.StaffManager;
 import com.hardcorekits.stats.StatsStore;
+import com.hardcorekits.studio.StudioCommand;
+import com.hardcorekits.studio.StudioGuard;
+import com.hardcorekits.studio.StudioMode;
 import com.hardcorekits.web.StatusServer;
 import com.hardcorekits.listener.CommandGuard;
 import com.hardcorekits.listener.WatchdogListener;
@@ -100,6 +103,13 @@ public final class HardcoreGames extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        // The film studio's private server runs this plugin for its kits alone. Decided before
+        // anything else, because everything below belongs to a real match. See StudioMode.
+        if (StudioMode.requested(this)) {
+            enableStudio();
+            return;
+        }
+
         // The plugin was born as "HungerGames"; a server upgrading across the rebrand has
         // its stats.json and roles.json under the old folder name. Adopt that folder whole
         // before anything touches the new one — lifetime stats outlive even the name.
@@ -176,6 +186,7 @@ public final class HardcoreGames extends JavaPlugin {
         game.enable();
         // Records live matches for the movie pipeline. A pure observer: see MatchRecorder.
         recorder = new MatchRecorder(this, game, moviePrefs);
+        kits.setAbilityWatcher(recorder::ability);
         recorder.start();
         worldShaper.start();
         new BorderTask(this, game).start();
@@ -191,8 +202,46 @@ public final class HardcoreGames extends JavaPlugin {
         getLogger().info("Hardcore Games enabled — state: " + game.state());
     }
 
+    /**
+     * Studio mode: kits and their listeners, every gate open, and /studio to fire them. No
+     * match flow, world rotation, pregeneration, border, feast, stats, status server, recorder,
+     * Discord or command guard: none of those objects is even created.
+     */
+    private void enableStudio() {
+        StudioMode.activate();
+        // The studio keeps its own config.yml (it is what says "studio"); whatever it leaves
+        // out is read from the copy in the jar.
+        reloadConfig();
+        getConfig().options().copyDefaults(true);
+
+        GameConfig config = new GameConfig(getConfig());
+        kits = new KitRegistry();
+        kits.registerDefaults(config);
+        kits.setAbilityGate(() -> true);
+        kits.setPvpGate(() -> true);
+
+        // Loaded because the game object wants one; StatsStore never writes in studio mode.
+        game = new GameManager(this, kits, config, new StatsStore(getDataFolder(), getLogger()));
+        game.enterStudio();
+
+        // First, so it sees every move before a kit does and has the last word after.
+        getServer().getPluginManager().registerEvents(new StudioGuard(this, game), this);
+        registerListeners(true);
+
+        StudioCommand studio = new StudioCommand(this, game, kits);
+        bind("studio", studio, studio);
+        getLogger().info("Hardcore Games enabled in STUDIO mode: kits only, no match, "
+                + kits.all().size() + " kits ready for /studio.");
+    }
+
     @Override
     public void onDisable() {
+        if (StudioMode.enabled()) {
+            if (game != null) {
+                game.studioReset(); // take arenas, webs and conjured water back out of the world
+            }
+            return;
+        }
         // First thing out the door: the pregen sweep must stop issuing chunk requests, or
         // the halting chunk system waits its full 60s timeouts on work we keep creating.
         if (pregen != null) {
@@ -275,6 +324,14 @@ public final class HardcoreGames extends JavaPlugin {
         bind("propose", staffCommand, null);
     }
 
+    /** The listeners that run a match rather than a kit. Studio mode leaves them unregistered. */
+    private static final java.util.Set<Class<? extends Listener>> MATCH_ONLY = java.util.Set.of(
+            AdvancementListener.class, ServerListListener.class, EnchantingListener.class,
+            ConnectionListener.class, CommandGuard.class, WatchdogListener.class,
+            ProtectionListener.class, DeathListener.class, CompassListener.class,
+            CombatListener.class, SoupListener.class, KillCounterListener.class,
+            LegacyCombatListener.class, WorldShaper.class);
+
     private void bind(String name, CommandExecutor executor, TabCompleter completer) {
         PluginCommand command = getCommand(name);
         if (command == null) {
@@ -288,6 +345,16 @@ public final class HardcoreGames extends JavaPlugin {
     }
 
     private void registerListeners() {
+        registerListeners(false);
+    }
+
+    /**
+     * @param studio true in studio mode: the same listeners are built, in the same order, but
+     *               only the kits' own are registered. Everything that runs a match (joins,
+     *               deaths, protection, combat rules, the anticheat, the world shaper) is left
+     *               out, and the anticheat's sweep is not started.
+     */
+    private void registerListeners(boolean studio) {
         DemomanListener demoman = new DemomanListener(this, game, kits);
         // Mines are per-match state, so drop them whenever the game resets.
         game.onReset(demoman::clearTraps);
@@ -407,7 +474,9 @@ public final class HardcoreGames extends JavaPlugin {
         // Flag-only anticheat. Its hover sweep starts with the border task, below.
         WatchdogListener watchdog = new WatchdogListener(this, game, staff);
         game.onReset(watchdog::clearState);
-        watchdog.start();
+        if (!studio) {
+            watchdog.start();
+        }
 
         for (Listener listener : new Listener[]{
                 new AdvancementListener(),
@@ -469,7 +538,15 @@ public final class HardcoreGames extends JavaPlugin {
                 demoman,
                 digger,
                 worldShaper}) {
+            if (studio && (listener == null || MATCH_ONLY.contains(listener.getClass()))) {
+                continue;
+            }
             getServer().getPluginManager().registerEvents(listener, this);
         }
+    }
+
+    /** The match recorder, or null when recording is off (or in studio mode). */
+    public MatchRecorder recorder() {
+        return recorder;
     }
 }

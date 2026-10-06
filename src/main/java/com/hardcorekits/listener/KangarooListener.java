@@ -71,6 +71,12 @@ public final class KangarooListener implements Listener {
         }
         Player player = event.getPlayer();
         if (!game.state().isLive() || !kits.canUseAbility(player, KangarooKit.ID)) {
+            // Locked is still not spent: left to vanilla, a Kangaroo's rocket launches as a
+            // firework and the whole kit goes up with it.
+            if (kits.hasKit(player, KangarooKit.ID)
+                    && !(action == Action.RIGHT_CLICK_BLOCK && Interact.opensBlock(event))) {
+                event.setCancelled(true);
+            }
             return; // anyone else gets an ordinary firework
         }
         if (action == Action.RIGHT_CLICK_BLOCK && Interact.opensBlock(event)) {

@@ -183,6 +183,8 @@ public final class MatchRecorder implements Listener {
     private final Map<Integer, Tracked> tracked = new HashMap<>();
 
     /** {@code every}: ticks between samples of this entity (scenery is sampled more slowly). */
+    private final Map<Integer, double[]> lastEntity = new HashMap<>();
+
     private record Tracked(Entity entity, String type, int until, int every) {
     }
 
@@ -407,7 +409,9 @@ public final class MatchRecorder implements Listener {
         World world = game.config().world();
         worldName = world == null ? null : world.getName();
         index.clear();
+        lastEntity.clear();
         highlights.clear();
+        lastAbility.clear();
         roster.clear();
         slotOwners.clear();
         held.clear();
@@ -569,6 +573,9 @@ public final class MatchRecorder implements Listener {
             lastProximityPass = tick;
             proximityPass(players);
         }
+        if (tick % 600 == 0) {
+            sky(); // the world's clock and weather, so the film has the same sky
+        }
         if (tick - lastAmbientPass >= nearSampleTicks) {
             lastAmbientPass = tick;
             ambientPass(players);
@@ -630,6 +637,41 @@ public final class MatchRecorder implements Listener {
     private void ambientPass(List<Player> players) {
         for (Player player : players) {
             if (hotUntil.getOrDefault(player.getUniqueId(), -1) < tick) {
+                // Not in a fight yet, but something may be coming for them: a creature that has
+                // picked a player as its target (the golem walking over, the zombie closing in)
+                // is followed closely from that moment, so its approach and its first swing are
+                // on the record instead of starting at the first hit. Checked once a second.
+                if (tick % 20 < nearSampleTicks) {
+                    // ...and whatever else is standing around them is followed slowly, so the golem
+                    // in the village and the zombie in the cave are in the film from the moment the
+                    // player walks up, not from the moment they trade blows.
+                    int seen = 0;
+                    for (Entity entity : player.getNearbyEntities(28.0D, 12.0D, 28.0D)) {
+                        if (!(entity instanceof LivingEntity) || entity instanceof Player
+                                || entity instanceof org.bukkit.entity.WaterMob
+                                || entity instanceof org.bukkit.entity.Ambient) {
+                            continue;
+                        }
+                        if (entity instanceof org.bukkit.entity.Mob mob && mob.getTarget() instanceof Player) {
+                            track(entity, nearSampleTicks * 6);
+                            continue;
+                        }
+                        boolean notable = entity instanceof org.bukkit.entity.Monster
+                                || entity instanceof org.bukkit.entity.Golem
+                                || entity instanceof org.bukkit.entity.Tameable
+                                || entity instanceof org.bukkit.entity.AbstractVillager;
+                        if (!notable && entity.getLocation().distanceSquared(player.getLocation()) > 256.0D) {
+                            continue; // ordinary animals only when they are close
+                        }
+                        if (seen++ >= 20) {
+                            break;
+                        }
+                        Tracked known = tracked.get(entity.getEntityId());
+                        if (known == null || (known.every() >= 20 && known.until() < tick + 30)) {
+                            track(entity, 60, 20);
+                        }
+                    }
+                }
                 continue;
             }
             Location centre = player.getLocation();
@@ -642,6 +684,11 @@ public final class MatchRecorder implements Listener {
                         || entity instanceof org.bukkit.entity.WaterMob
                         || entity instanceof org.bukkit.entity.Ambient) {
                     continue; // fish, squid and bats are not scenery worth the bytes
+                }
+                if (entity instanceof org.bukkit.entity.Mob mob && mob.getTarget() instanceof Player) {
+                    track(entity, nearSampleTicks * 6); // hunting a player: every move counts
+                    added++;
+                    continue;
                 }
                 Tracked known = tracked.get(entity.getEntityId());
                 if (known == null) {
@@ -755,6 +802,7 @@ public final class MatchRecorder implements Listener {
             Tracked item = entry.getValue();
             if (!item.entity().isValid() || tick > item.until()) {
                 iterator.remove();
+                lastEntity.remove(entry.getKey());
                 JsonObject event = event("gone");
                 event.addProperty("eid", entry.getKey());
                 write(event);
@@ -764,6 +812,12 @@ public final class MatchRecorder implements Listener {
                 continue;
             }
             Location at = item.entity().getLocation();
+            double[] was = lastEntity.get(entry.getKey());
+            if (was != null && tick - (int) was[3] < 100 && Math.abs(at.getX() - was[0]) < 0.05D
+                    && Math.abs(at.getY() - was[1]) < 0.05D && Math.abs(at.getZ() - was[2]) < 0.05D) {
+                continue;
+            }
+            lastEntity.put(entry.getKey(), new double[] {at.getX(), at.getY(), at.getZ(), tick});
             lines.append(tick).append(',').append(entry.getKey()).append(',').append(item.type()).append(',')
                     .append(round(at.getX())).append(',').append(round(at.getY())).append(',')
                     .append(round(at.getZ())).append(',')
@@ -844,6 +898,28 @@ public final class MatchRecorder implements Listener {
                 }
             }
         }
+        // how the server itself described it ("was stomped by ..."): a kit's kill is not the item in hand
+        if (event.deathMessage() != null) {
+            String said = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
+                    .serialize(event.deathMessage());
+            if (!said.isBlank()) {
+                line.addProperty("msg", said.length() > 160 ? said.substring(0, 160) : said);
+            }
+        }
+        // what they dropped, so the film can show the loot spill out where they fell
+        JsonArray spilled = new JsonArray();
+        for (org.bukkit.inventory.ItemStack drop : event.getDrops()) {
+            if (drop == null || drop.getType().isAir() || spilled.size() >= 14) {
+                continue;
+            }
+            JsonArray one = new JsonArray();
+            one.add(drop.getType().name().toLowerCase(Locale.ROOT));
+            one.add(drop.getAmount());
+            spilled.add(one);
+        }
+        if (!spilled.isEmpty()) {
+            line.add("drops", spilled);
+        }
         sampleNow(victim); // the track must end exactly where they fell
         Player killer = victim.getKiller();
         Integer killerSlot = killer == null || killer.equals(victim) ? null : participant(killer);
@@ -888,6 +964,12 @@ public final class MatchRecorder implements Listener {
                     line.addProperty("a", attackerSlot);
                 } else {
                     line.addProperty("mob", damager.getType().name().toLowerCase(Locale.ROOT));
+                    // which creature it was, so the film can make that one swing at this moment
+                    Entity striker = attacker != null ? attacker : damager;
+                    line.addProperty("me", striker.getEntityId());
+                    if (striker instanceof LivingEntity) {
+                        track(striker, mobTicks);
+                    }
                     if (damager instanceof LivingEntity) {
                         track(damager, mobTicks);
                     }
@@ -904,10 +986,21 @@ public final class MatchRecorder implements Listener {
                 if (attackerSlot != null) {
                     heat(attacker, combatHoldTicks);
                 }
-            } else if (attackerSlot != null && victim instanceof LivingEntity) {
-                // A participant fighting a mob: keep the mob on camera for a while.
+            } else if (attackerSlot != null && victim instanceof LivingEntity living) {
+                // A participant fighting a mob: keep the mob on camera for a while, and log the
+                // blow against that very creature so the film can show it land (a kit's own
+                // wolves and golems being cut down matters as much as what they do to players).
                 track(victim, mobTicks);
                 heat(attacker, combatHoldTicks);
+                JsonObject line = event("mobhit");
+                line.addProperty("a", attackerSlot);
+                line.addProperty("me", victim.getEntityId());
+                line.addProperty("mob", victim.getType().name().toLowerCase(Locale.ROOT));
+                line.addProperty("dmg", Math.round(event.getFinalDamage() * 10.0D) / 10.0D);
+                if (living.getHealth() - event.getFinalDamage() <= 0.0D) {
+                    line.addProperty("dead", true);
+                }
+                write(line);
             }
             return;
         }
@@ -969,6 +1062,22 @@ public final class MatchRecorder implements Listener {
                 "bucket", participant(event.getPlayer()));
     }
 
+    /**
+     * A block the plugin itself placed (the feast, the winner's cake tower). No event fires for
+     * those, so without this the film sees them in the saved map with no idea when they
+     * appeared, and shows the cake tower hanging in the sky from the first minute. Call with
+     * what the block was BEFORE it was changed.
+     */
+    public void pluginSet(Block block, String was) {
+        if (out == null || worldName == null || !block.getWorld().getName().equals(worldName)) {
+            return;
+        }
+        String now = block.getBlockData().getAsString();
+        if (!now.equals(was)) {
+            blockChange(block, was, now, "plugin", null);
+        }
+    }
+
     private void blockChange(Block block, String from, String to, String how, Integer slot) {
         JsonObject line = event("block");
         line.addProperty("x", block.getX());
@@ -1012,6 +1121,59 @@ public final class MatchRecorder implements Listener {
             broken.add(entry);
         }
         line.add("blocks", broken);
+        write(line);
+    }
+
+    /** The match world's time of day and weather right now. */
+    private void sky() {
+        World world = game.config().world();
+        if (out == null || world == null) {
+            return;
+        }
+        JsonObject line = event("sky");
+        line.addProperty("time", world.getTime());
+        line.addProperty("running", Boolean.TRUE.equals(world.getGameRuleValue(org.bukkit.GameRules.ADVANCE_TIME)));
+        line.addProperty("storm", world.hasStorm());
+        line.addProperty("thunder", world.isThundering());
+        write(line);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onWeather(org.bukkit.event.weather.WeatherChangeEvent event) {
+        if (out != null && event.getWorld().getName().equals(worldName)) {
+            Bukkit.getScheduler().runTask(plugin, this::sky); // after the change has applied
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onThunder(org.bukkit.event.weather.ThunderChangeEvent event) {
+        if (out != null && event.getWorld().getName().equals(worldName)) {
+            Bukkit.getScheduler().runTask(plugin, this::sky);
+        }
+    }
+
+    // Every kit checks in with the registry before its ability fires, so this one hook sees all
+    // of them without touching a single kit. Passive kits check constantly, so a player's
+    // kit is logged at most once every two seconds: enough to say "he used it here".
+    private final Map<UUID, Integer> lastAbility = new HashMap<>();
+
+    public void ability(Player player, String kitId) {
+        if (out == null) {
+            return;
+        }
+        Integer slot = participant(player);
+        if (slot == null) {
+            return;
+        }
+        Integer last = lastAbility.get(player.getUniqueId());
+        if (last != null && tick - last < 40) {
+            return;
+        }
+        lastAbility.put(player.getUniqueId(), tick);
+        JsonObject line = event("ability");
+        line.addProperty("p", slot);
+        line.addProperty("kit", kitId);
+        position(line, player.getLocation());
         write(line);
     }
 
@@ -1083,6 +1245,21 @@ public final class MatchRecorder implements Listener {
         write(line);
     }
 
+    /** Something thrown on the ground (Q): shown in the film as the item leaving the hand. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onDropItem(org.bukkit.event.player.PlayerDropItemEvent event) {
+        Integer slot = participant(event.getPlayer());
+        if (out == null || slot == null) {
+            return;
+        }
+        org.bukkit.inventory.ItemStack stack = event.getItemDrop().getItemStack();
+        JsonObject line = event("drop");
+        line.addProperty("p", slot);
+        line.addProperty("item", stack.getType().name().toLowerCase(Locale.ROOT));
+        line.addProperty("n", stack.getAmount());
+        write(line);
+    }
+
     /** The winner's send-off: every burst over the cake tower, with its colours. */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onFirework(FireworkExplodeEvent event) {
@@ -1140,6 +1317,14 @@ public final class MatchRecorder implements Listener {
             return;
         }
         sampleNow(event.getPlayer()); // where they left from, so the film does not glide them across
+        // ...and where they arrive, a tick later, so the film moves them at this instant and not
+        // half a second on, whenever their next ordinary sample happens to fall
+        Player moved = event.getPlayer();
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (out != null && moved.isOnline()) {
+                sampleNow(moved);
+            }
+        });
         heat(event.getPlayer(), 60);
         JsonObject line = event("teleport");
         line.addProperty("p", slot);

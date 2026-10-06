@@ -223,6 +223,9 @@ public final class StatsStore {
     }
 
     private void save() {
+        if (com.hardcorekits.studio.StudioMode.enabled()) {
+            return; // the film studio never writes stats
+        }
         try {
             Files.createDirectories(file.toPath().getParent());
             try (Writer writer = Files.newBufferedWriter(file.toPath(), StandardCharsets.UTF_8)) {

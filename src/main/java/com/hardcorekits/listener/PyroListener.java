@@ -73,6 +73,12 @@ public final class PyroListener implements Listener {
         }
         Player player = event.getPlayer();
         if (!game.state().isLive() || !kits.canUseAbility(player, PyroKit.ID)) {
+            // Locked is still not spent: left to vanilla, a Pyro's charge burns up as a
+            // lighter on whatever block was clicked.
+            if (kits.hasKit(player, PyroKit.ID)
+                    && !(action == Action.RIGHT_CLICK_BLOCK && Interact.opensBlock(event))) {
+                event.setCancelled(true);
+            }
             return; // anyone else gets an ordinary fire charge
         }
 

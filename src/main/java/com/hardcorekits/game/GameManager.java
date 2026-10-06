@@ -142,6 +142,37 @@ public final class GameManager {
         enterWaiting();
     }
 
+    /**
+     * Studio mode's whole lifecycle: there is no match, so no lobby watcher, no countdown and
+     * no world rules. The state simply sits at ACTIVE, which is what every kit listener asks
+     * about ("is the match live, can players hurt each other"). See {@code StudioMode}.
+     */
+    public void enterStudio() {
+        state = GameState.ACTIVE;
+    }
+
+    /** Studio mode: counts a puppet as a living tribute, so abilities can reach it. */
+    public void studioAdmit(Player player) {
+        alive.add(player.getUniqueId());
+    }
+
+    /** Studio mode: the reverse of {@link #studioAdmit(Player)}. */
+    public void studioDismiss(Player player) {
+        alive.remove(player.getUniqueId());
+        immuneUntil.remove(player.getUniqueId());
+    }
+
+    /**
+     * Studio mode: drops every kit's per-match state (cooldowns, mines, arenas, clones) the way
+     * a reset does, without the reset. Run between the scenes of a film.
+     */
+    public void studioReset() {
+        immuneUntil.clear();
+        for (Runnable hook : resetHooks) {
+            runHook("reset", hook);
+        }
+    }
+
     public void disable() {
         ceremony.cancel();
         Phases.cancel(lobbyTask);
@@ -500,6 +531,9 @@ public final class GameManager {
      * window and no reconnect. The opponent gets the kill.
      */
     public void abandonDuel(UUID uuid, String name, String opponentName) {
+        if (com.hardcorekits.studio.StudioMode.enabled()) {
+            return; // no match to lose in the film studio
+        }
         if (!state.isLive() || !alive.remove(uuid)) {
             return;
         }
@@ -984,6 +1018,9 @@ public final class GameManager {
      * @return true if they were actually in the match
      */
     public boolean eliminate(Player player, Component announcement, Component kickReason) {
+        if (com.hardcorekits.studio.StudioMode.enabled()) {
+            return false; // nobody is kicked from the film studio; deaths there are the recording's
+        }
         if (!alive.remove(player.getUniqueId())) {
             return false;
         }

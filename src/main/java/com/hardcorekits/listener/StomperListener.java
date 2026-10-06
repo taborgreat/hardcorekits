@@ -103,6 +103,9 @@ public final class StomperListener implements Listener {
         }
 
         if (landed) {
+            // The shockwave never asks a gate (it is a landing, not a click), so the match
+            // recorder is told here that it happened.
+            kits.abilityFired(stomper, StomperKit.ID);
             landing.getWorld().playSound(landing, Sound.ENTITY_PLAYER_ATTACK_CRIT, 1.0F, 0.6F);
         }
     }

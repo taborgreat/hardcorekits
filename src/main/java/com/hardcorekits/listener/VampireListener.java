@@ -98,7 +98,10 @@ public final class VampireListener implements Listener {
                 : game.config().vampireMobKillHeal());
 
         if (playerKill && wasClean(vampire)) {
-            vampire.getInventory().addItem(vial());
+            // Dropped at their feet if there is no room: a vial earned is never lost to a full bag.
+            for (ItemStack spill : vampire.getInventory().addItem(vial()).values()) {
+                vampire.getWorld().dropItemNaturally(vampire.getLocation(), spill);
+            }
             vampire.sendMessage(Component.text("A clean kill. Your vial is filled.",
                     NamedTextColor.DARK_RED));
         }

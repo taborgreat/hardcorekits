@@ -118,7 +118,7 @@ public final class HulkListener implements Listener {
 
         long now = System.currentTimeMillis();
         Long until = nextGrab.get(hulk.getUniqueId());
-        if (until != null && now < until) {
+        if (until != null && now < until && !com.hardcorekits.studio.StudioMode.firing()) {
             hulk.sendActionBar(Component.text("Still catching your breath.", NamedTextColor.GRAY));
             return;
         }

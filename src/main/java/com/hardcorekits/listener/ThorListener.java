@@ -95,7 +95,7 @@ public final class ThorListener implements Listener {
                 || !kits.canUseAbility(player, ThorKit.ID)) {
             return;
         }
-        if (onCooldown(player)) {
+        if (!com.hardcorekits.studio.StudioMode.firing() && onCooldown(player)) {
             return;
         }
 

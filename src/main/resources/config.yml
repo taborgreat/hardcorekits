@@ -827,3 +827,12 @@ movie:
     whisper: Whisper
     trailer: Movie trailer voice
 
+# ----------------------------------------------------------------------------------------------
+# Film studio. Leave this off: it is for the private offline server where the movie pipeline
+# (mcmovie) replays a recorded match with bots and films it. When true (and only on a server in
+# offline mode) the plugin loads the kits and nothing else: no lobby, no match, no world
+# rotation, no border, no feast, no stats, no status server, no recorder. /studio then gives a
+# bot a kit and fires its ability at the moment the recording says it fired. A studio keeps its
+# own copy of this file; the live server's copy is rewritten from the jar on every boot.
+studio:
+  enabled: false

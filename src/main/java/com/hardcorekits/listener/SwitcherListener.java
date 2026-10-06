@@ -85,7 +85,7 @@ public final class SwitcherListener implements Listener {
 
         long now = System.currentTimeMillis();
         Long until = nextThrow.get(player.getUniqueId());
-        if (until != null && now < until) {
+        if (until != null && now < until && !com.hardcorekits.studio.StudioMode.firing()) {
             // Cancelled before the ball is spent — a cooldown must not eat the budget.
             event.setCancelled(true);
             player.sendActionBar(Component.text("Switcher ball has "

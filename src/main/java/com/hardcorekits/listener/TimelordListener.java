@@ -162,6 +162,9 @@ public final class TimelordListener implements Listener {
     }
 
     private void still(LivingEntity mob, int seconds) {
+        if (com.hardcorekits.studio.StudioMode.enabled() && !mob.hasAI()) {
+            return; // a film studio creature is already a puppet; its mind must stay off afterwards
+        }
         UUID uuid = mob.getUniqueId();
         Phases.cancel(stilled.remove(uuid));
         mob.setAI(false);

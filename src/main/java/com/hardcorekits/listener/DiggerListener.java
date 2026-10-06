@@ -54,10 +54,15 @@ public final class DiggerListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onPlace(BlockPlaceEvent event) {
         Block placed = event.getBlockPlaced();
-        if (placed.getType() != DiggerKit.EGG || !game.state().isLive()) {
+        if (placed.getType() != DiggerKit.EGG) {
             return;
         }
-        if (!kits.canUseAbility(event.getPlayer(), DiggerKit.ID)) {
+        if (!game.state().isLive() || !kits.canUseAbility(event.getPlayer(), DiggerKit.ID)) {
+            // Refused, not ignored: a locked egg would go down as an ordinary dragon egg, with
+            // no fuse and no way to pick it back up. A charge gone for nothing.
+            if (kits.hasKit(event.getPlayer(), DiggerKit.ID)) {
+                event.setCancelled(true);
+            }
             return; // an ordinary dragon egg for anyone else
         }
 

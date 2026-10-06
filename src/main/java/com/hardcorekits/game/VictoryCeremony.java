@@ -267,8 +267,12 @@ public final class VictoryCeremony {
     }
 
     private void place(Block block, Material material) {
+        String was = block.getBlockData().getAsString();
         block.setType(material);
         placed.add(block.getLocation());
+        if (plugin.recorder() != null) {
+            plugin.recorder().pluginSet(block, was); // so the film knows the tower was not always there
+        }
     }
 
     private void launchFirework(Location podium) {

@@ -17,6 +17,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -131,7 +132,7 @@ public final class GladiatorListener implements Listener {
 
         long now = System.currentTimeMillis();
         Long until = nextChallenge.get(challenger.getUniqueId());
-        if (until != null && now < until) {
+        if (until != null && now < until && !com.hardcorekits.studio.StudioMode.firing()) {
             challenger.sendActionBar(Component.text("The Shadow Game needs "
                     + ((until - now) / 1000L + 1) + "s.", NamedTextColor.RED));
             return;
@@ -141,6 +142,21 @@ public final class GladiatorListener implements Listener {
 
         event.setCancelled(true);
         begin(challenger, challenged);
+    }
+
+    /**
+     * The bars are the challenge, never a building block.
+     *
+     * <p>Without this a click that lands on a block instead of a player puts them down, and
+     * iron bars only come back up for a pickaxe: the kit is gone, most easily of all during
+     * invincibility, when the challenge is locked and every click is a miss.
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void onPlace(BlockPlaceEvent event) {
+        if (event.getBlockPlaced().getType() == GladiatorKit.BARS
+                && kits.hasKit(event.getPlayer(), GladiatorKit.ID)) {
+            event.setCancelled(true);
+        }
     }
 
     private void begin(Player challenger, Player challenged) {

@@ -92,7 +92,7 @@ public final class JellyfishListener implements Listener {
         // One conjuring per cooldown — the XP bar drains while the sea replenishes.
         Long readyAt = nextConjure.get(player.getUniqueId());
         long now = System.currentTimeMillis();
-        if (readyAt != null && now < readyAt) {
+        if (readyAt != null && now < readyAt && !com.hardcorekits.studio.StudioMode.firing()) {
             player.sendActionBar(Component.text("More water in "
                     + ((readyAt - now) / 1000L + 1) + "s.", NamedTextColor.AQUA));
             return;

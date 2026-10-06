@@ -74,7 +74,7 @@ public final class MonkListener implements Listener {
 
         long now = System.currentTimeMillis();
         Long until = nextTouch.get(monk.getUniqueId());
-        if (until != null && now < until) {
+        if (until != null && now < until && !com.hardcorekits.studio.StudioMode.firing()) {
             monk.sendActionBar(Component.text("Your touch has "
                     + ((until - now) / 1000L + 1) + "s cooldown left!", NamedTextColor.RED));
             return;

@@ -107,7 +107,7 @@ public final class FishermanListener implements Listener {
 
         long now = System.currentTimeMillis();
         Long ready = reelableAt.get(victim.getUniqueId());
-        if (ready != null && now < ready) {
+        if (ready != null && now < ready && !com.hardcorekits.studio.StudioMode.firing()) {
             fisher.sendMessage(Component.text("Your line will not hold them again yet.",
                     NamedTextColor.AQUA));
             return;

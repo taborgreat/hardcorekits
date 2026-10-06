@@ -154,6 +154,11 @@ public final class KitRegistry {
         selected.put(uuid, kit);
     }
 
+    /** Takes one player's kit away. Studio mode only; in a match kits change through /kit. */
+    public void deselect(UUID uuid) {
+        selected.remove(uuid);
+    }
+
     /**
      * Whether this player is running that kit, with no regard for whether its abilities are
      * switched on yet.
@@ -184,6 +189,9 @@ public final class KitRegistry {
             return false;
         }
         if (abilityGate.getAsBoolean()) {
+            if (abilityWatcher != null) {
+                abilityWatcher.accept(player, kitId);
+            }
             return true;
         }
         explainLock(player, "Kit abilities unlock when the game starts.");
@@ -201,6 +209,9 @@ public final class KitRegistry {
             return false;
         }
         if (pvpGate.getAsBoolean()) {
+            if (abilityWatcher != null) {
+                abilityWatcher.accept(player, kitId);
+            }
             return true;
         }
         explainLock(player, "This ability unlocks when invincibility ends.");
@@ -225,6 +236,23 @@ public final class KitRegistry {
     }
 
     /** Wired by the plugin once the game exists, since the gate is a game-state question. */
+    /** Told every time a player's kit ability is allowed to fire (the match recorder listens). */
+    private java.util.function.BiConsumer<Player, String> abilityWatcher;
+
+    public void setAbilityWatcher(java.util.function.BiConsumer<Player, String> watcher) {
+        this.abilityWatcher = watcher;
+    }
+
+    /**
+     * For the few abilities that never pass through a gate (the Stomper's shockwave is decided
+     * by a landing, not a click): tells the watcher the ability just fired. Observation only.
+     */
+    public void abilityFired(Player player, String kitId) {
+        if (abilityWatcher != null) {
+            abilityWatcher.accept(player, kitId);
+        }
+    }
+
     public void setAbilityGate(BooleanSupplier gate) {
         this.abilityGate = gate;
     }

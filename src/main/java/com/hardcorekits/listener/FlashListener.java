@@ -113,6 +113,11 @@ public final class FlashListener implements Listener {
         }
         Player player = event.getPlayer();
         if (!game.state().isLive() || !kits.canUseAbility(player, FlashKit.ID)) {
+            // Locked is still not placed: a Flash's torch stays in the hand, not on a wall.
+            if (kits.hasKit(player, FlashKit.ID) && action == Action.RIGHT_CLICK_BLOCK
+                    && !Interact.opensBlock(event)) {
+                event.setCancelled(true);
+            }
             return; // anyone else places an ordinary torch
         }
         if (action == Action.RIGHT_CLICK_BLOCK && Interact.opensBlock(event)) {
@@ -131,7 +136,7 @@ public final class FlashListener implements Listener {
             return; // the same click, wearing its other hat
         }
         Long until = nextFlash.get(player.getUniqueId());
-        if (until != null && now < until) {
+        if (until != null && now < until && !com.hardcorekits.studio.StudioMode.firing()) {
             player.sendActionBar(Component.text("Your flash has "
                     + ((until - now) / 1000L + 1) + "s cooldown left!", NamedTextColor.RED));
             return;

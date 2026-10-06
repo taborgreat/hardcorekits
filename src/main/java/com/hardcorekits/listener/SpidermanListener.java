@@ -107,7 +107,7 @@ public final class SpidermanListener implements Listener {
 
         long now = System.currentTimeMillis();
         Long until = restingUntil.get(player.getUniqueId());
-        if (until != null && now < until) {
+        if (until != null && now < until && !com.hardcorekits.studio.StudioMode.firing()) {
             event.setCancelled(true);
             player.sendActionBar(Component.text("Your webs have "
                     + ((until - now) / 1000L + 1) + "s cooldown left!", NamedTextColor.RED));

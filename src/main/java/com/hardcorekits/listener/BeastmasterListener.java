@@ -50,16 +50,21 @@ public final class BeastmasterListener implements Listener {
         if (event.getHand() != EquipmentSlot.HAND) {
             return; // fires once per hand otherwise
         }
-        if (!(event.getRightClicked() instanceof Wolf wolf) || !game.state().isLive()) {
+        if (!(event.getRightClicked() instanceof Wolf wolf)) {
             return;
         }
         Player player = event.getPlayer();
-        if (!kits.canUseAbility(player, BeastmasterKit.ID) || wolf.isTamed()) {
+        ItemStack held = player.getInventory().getItemInMainHand();
+        if (!game.state().isLive() || !kits.canUseAbility(player, BeastmasterKit.ID)) {
+            // Locked is still not spent: left to vanilla, a Beastmaster's bone goes on the
+            // one-in-three roll the kit exists to skip.
+            if (kits.hasKit(player, BeastmasterKit.ID) && !wolf.isTamed()
+                    && held.getType() == Material.BONE) {
+                event.setCancelled(true);
+            }
             return;
         }
-
-        ItemStack held = player.getInventory().getItemInMainHand();
-        if (held.getType() != Material.BONE) {
+        if (wolf.isTamed() || held.getType() != Material.BONE) {
             return;
         }
 

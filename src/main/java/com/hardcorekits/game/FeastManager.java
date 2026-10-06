@@ -116,6 +116,15 @@ public final class FeastManager {
     // ---------------------------------------------------------------- stage 1: the circle
 
     /** Builds the disc at the already-chosen {@link #site}. Never picks a location itself. */
+    /** Sets a block and tells the match recorder, which sees no event for plugin-placed blocks. */
+    private void put(Block block, Material material) {
+        String was = block.getBlockData().getAsString();
+        block.setType(material);
+        if (plugin.recorder() != null) {
+            plugin.recorder().pluginSet(block, was);
+        }
+    }
+
     private void buildCircle() {
         int radius = config.feastRadius();
         World world = site.getWorld();
@@ -129,13 +138,13 @@ public final class FeastManager {
                 if (distanceSquared > radius * radius) {
                     continue;
                 }
-                world.getBlockAt(cx + dx, cy, cz + dz).setType(PLATFORM);
+                put(world.getBlockAt(cx + dx, cy, cz + dz), PLATFORM);
 
                 // Carve out anything above so the circle is never buried in a hillside.
                 for (int dy = 1; dy <= HEADROOM; dy++) {
                     Block above = world.getBlockAt(cx + dx, cy + dy, cz + dz);
                     if (!above.getType().isAir()) {
-                        above.setType(Material.AIR);
+                        put(above, Material.AIR);
                     }
                 }
             }
@@ -197,11 +206,11 @@ public final class FeastManager {
         int cy = site.getBlockY() + 1;
         int cz = site.getBlockZ();
 
-        world.getBlockAt(cx, cy, cz).setType(Material.ENCHANTING_TABLE);
+        put(world.getBlockAt(cx, cy, cz), Material.ENCHANTING_TABLE);
 
         for (int[] offset : chestOffsets(config.feastChests())) {
             Block block = world.getBlockAt(cx + offset[0], cy, cz + offset[1]);
-            block.setType(Material.CHEST);
+            put(block, Material.CHEST);
 
             // getBlockInventory() is this chest's own live inventory. The obvious
             // getInventory() returns the *combined* inventory when chests are paired, and it
